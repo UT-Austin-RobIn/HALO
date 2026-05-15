@@ -1,0 +1,250 @@
+/*
+ * HALO — Global Design System
+ *
+ * Google Fonts are loaded via <link> in src/layouts/Layout.astro (not @import here),
+ * which gives better performance through browser-level parallelism and avoids
+ * render-blocking @import chains.
+ *
+ * Aesthetic: warm, editorial, high-contrast academic — humanities journal style.
+ */
+
+/* ─── Design Tokens ──────────────────────────────────────────────── */
+:root {
+  --bg: #F5F0E8;           /* warm parchment */
+  --bg-surface: #EDE5D8;   /* slightly darker parchment for cards */
+  --text: #1B1614;         /* warm near-black */
+  --text-muted: #6B5F5A;   /* warm gray */
+  --accent: #8B2635;       /* deep burgundy/crimson */
+  --accent-warm: #B8461B;  /* terracotta */
+  --divider: #D8CEBF;      /* warm tan */
+
+  --font-display: 'Cormorant Garamond', Georgia, serif;
+  --font-body: 'Libre Baskerville', Georgia, serif;
+  --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
+
+  /* Typography scale */
+  --text-xs: 0.75rem;      /* 12px */
+  --text-sm: 0.875rem;     /* 14px */
+  --text-base: 1rem;       /* 16px */
+  --text-md: 1.125rem;     /* 18px */
+  --text-lg: 1.25rem;      /* 20px */
+  --text-xl: 1.5rem;       /* 24px */
+  --text-2xl: 2rem;        /* 32px */
+  --text-3xl: 2.75rem;     /* 44px */
+  --text-4xl: 3.5rem;      /* 56px */
+
+  /* Spacing */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+  --space-3xl: 4.5rem;
+  --space-4xl: 6rem;
+
+  /* Section vertical rhythm */
+  --section-padding-y: 4rem;
+
+  /* Container */
+  --container-max: 900px;
+  --container-px: 1.5rem;
+
+  /* Border radius */
+  --radius-sm: 3px;
+  --radius-md: 6px;
+
+  /* Transitions */
+  --transition: 180ms ease;
+}
+
+/* ─── Box Model Reset ─────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ─── Base ────────────────────────────────────────────────────────── */
+html {
+  scroll-behavior: smooth;
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Selection ───────────────────────────────────────────────────── */
+::selection {
+  background-color: var(--accent);
+  color: #fff;
+}
+
+/* ─── Typography ──────────────────────────────────────────────────── */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.15;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+h1 { font-size: var(--text-4xl); }
+h2 { font-size: var(--text-3xl); }
+h3 { font-size: var(--text-2xl); }
+h4 { font-size: var(--text-xl); }
+h5 { font-size: var(--text-lg); }
+h6 { font-size: var(--text-md); }
+
+p {
+  max-width: 70ch;
+  margin-bottom: var(--space-md);
+}
+
+p:last-child {
+  margin-bottom: 0;
+}
+
+/* ─── Links ───────────────────────────────────────────────────────── */
+a {
+  color: var(--accent);
+  text-decoration: none;
+  transition: color var(--transition), text-decoration-color var(--transition);
+}
+
+a:hover {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+
+/* ─── Code ────────────────────────────────────────────────────────── */
+code, kbd, samp, pre {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+}
+
+pre {
+  background: var(--bg-surface);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  overflow-x: auto;
+  line-height: 1.6;
+}
+
+code:not(pre code) {
+  background: var(--bg-surface);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-sm);
+  padding: 0.1em 0.35em;
+}
+
+/* ─── Horizontal Rule ─────────────────────────────────────────────── */
+hr {
+  border: none;
+  border-top: 1px solid var(--divider);
+  margin: var(--space-2xl) 0;
+}
+
+/* ─── Images & Media ──────────────────────────────────────────────── */
+img, video, svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+/* ─── Lists ───────────────────────────────────────────────────────── */
+ul, ol {
+  padding-left: var(--space-xl);
+  margin-bottom: var(--space-md);
+}
+
+li {
+  margin-bottom: var(--space-xs);
+}
+
+/* ─── Layout Utilities ────────────────────────────────────────────── */
+
+/* Centered content container, max 900px */
+.container {
+  width: 100%;
+  max-width: var(--container-max);
+  margin-inline: auto;
+  padding-inline: var(--container-px);
+}
+
+/* Section with generous vertical breathing room */
+.section {
+  padding-block: var(--section-padding-y);
+}
+
+.section + .section {
+  padding-top: 0;
+}
+
+/* Divider between sections */
+.section-divider {
+  border: none;
+  border-top: 1px solid var(--divider);
+  margin: 0;
+}
+
+/* ─── Surface / Card ──────────────────────────────────────────────── */
+.surface {
+  background: var(--bg-surface);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-md);
+  padding: var(--space-xl);
+}
+
+/* ─── Text Utilities ──────────────────────────────────────────────── */
+.text-muted {
+  color: var(--text-muted);
+}
+
+.text-accent {
+  color: var(--accent);
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* ─── Responsive Breakpoints ──────────────────────────────────────── */
+@media (max-width: 640px) {
+  :root {
+    --text-4xl: 2.5rem;
+    --text-3xl: 2rem;
+    --text-2xl: 1.5rem;
+    --section-padding-y: 2.5rem;
+    --container-px: 1rem;
+  }
+}
+
+@media (max-width: 400px) {
+  :root {
+    --text-4xl: 2rem;
+    --text-3xl: 1.75rem;
+  }
+}

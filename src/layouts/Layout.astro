@@ -1,0 +1,99 @@
+---
+/**
+ * Layout.astro — Base page layout for the HALO paper website.
+ *
+ * Props:
+ *   title       — Page <title> and OG title
+ *   description — Meta description and OG description (optional)
+ */
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const {
+  title,
+  description = 'HALO: Memory-Augmented Dexterous Manipulation via Hierarchical Affordance Learning. Rutav Shah et al., RSS 2026.',
+} = Astro.props;
+
+import '../styles/global.css';
+
+const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+
+// OG image — swap for a real preview card once one exists
+const ogImage = new URL(`${base}/og-image.png`, Astro.site);
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- ── Basics ─────────────────────────────────────────── -->
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+
+    <!-- ── SEO ───────────────────────────────────────────── -->
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalURL} />
+
+    <!-- ── Favicon ───────────────────────────────────────── -->
+    <link rel="icon" type="image/svg+xml" href={`${base}/favicon.svg`} />
+
+    <!-- ── Open Graph ────────────────────────────────────── -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:site_name" content="HALO — RSS 2026" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+
+    <!-- ── Google Fonts ──────────────────────────────────── -->
+    <!--
+      Fonts are loaded via <link> here (not @import in CSS) for better
+      performance: the browser discovers and fetches fonts in parallel
+      with CSS parsing rather than waiting for the stylesheet to load.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- global.css is imported in frontmatter and bundled by Astro -->
+  </head>
+
+  <body>
+    <!-- Page content injected here -->
+    <slot />
+
+    <!-- ── Footer ────────────────────────────────────────── -->
+    <footer>
+      <div class="container">
+        <p>ROBIN Lab &middot; The University of Texas at Austin &middot; RSS 2026</p>
+      </div>
+    </footer>
+  </body>
+</html>
+
+<style>
+  footer {
+    padding-block: 2rem;
+    border-top: 1px solid var(--divider);
+    margin-top: 4rem;
+    text-align: center;
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    font-family: var(--font-body);
+    letter-spacing: 0.02em;
+  }
+</style>

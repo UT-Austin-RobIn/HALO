@@ -1,0 +1,290 @@
+---
+/**
+ * BarChart.astro — Pure SVG bar chart component.
+ *
+ * All SVG coordinates are computed in the frontmatter so the template
+ * is a straightforward render of pre-calculated values.
+ */
+
+interface BarDatum {
+  label: string;
+  value: number;
+  highlight?: boolean;
+}
+
+interface Props {
+  data: BarDatum[];
+  title?: string;
+  maxValue?: number;
+  barColor?: string;
+  highlightColor?: string;
+  horizontal?: boolean;
+  width?: number;
+  height?: number;
+}
+
+const {
+  data,
+  title,
+  maxValue = 100,
+  barColor = '#6B5F5A',
+  highlightColor = '#8B2635',
+  horizontal = false,
+  width = 600,
+  height = 300,
+} = Astro.props;
+
+// ── Shared layout constants ──────────────────────────────────────────
+const TITLE_H   = title ? 28 : 0;   // px reserved for chart title
+const TITLE_PAD = title ? 10 : 0;   // gap below title
+
+// ── Vertical-bar layout ──────────────────────────────────────────────
+const V_MARGIN_TOP    = TITLE_H + TITLE_PAD + 24;  // room for value labels
+const V_MARGIN_BOTTOM = 56;   // room for x-axis labels (two lines if needed)
+const V_MARGIN_LEFT   = 36;
+const V_MARGIN_RIGHT  = 12;
+
+const vPlotW = width  - V_MARGIN_LEFT - V_MARGIN_RIGHT;
+const vPlotH = height - V_MARGIN_TOP  - V_MARGIN_BOTTOM;
+
+// Gridlines (5 lines: 0%, 25%, 50%, 75%, 100% scaled to maxValue)
+const V_GRID_COUNT = 4;
+const vGridLines = Array.from({ length: V_GRID_COUNT + 1 }, (_, i) => {
+  const pct   = i / V_GRID_COUNT;                  // 0 → 1
+  const yVal  = Math.round(pct * maxValue);
+  const y     = V_MARGIN_TOP + vPlotH * (1 - pct); // svg y goes down
+  return { yVal, y };
+});
+
+// Bars
+const vBarGap   = vPlotW * 0.18 / (data.length + 1);
+const vBarW     = (vPlotW - vBarGap * (data.length + 1)) / data.length;
+
+interface VBar {
+  x: number;
+  y: number;
+  barH: number;
+  color: string;
+  label: string;
+  valueLabel: string;
+  valueLabelY: number;
+  labelParts: string[];
+}
+
+const vBars: VBar[] = data.map((d, i) => {
+  const barH       = (d.value / maxValue) * vPlotH;
+  const x          = V_MARGIN_LEFT + vBarGap * (i + 1) + vBarW * i;
+  const y          = V_MARGIN_TOP + vPlotH - barH;
+  const color      = d.highlight ? highlightColor : barColor;
+  const valueLabel = `${d.value}%`;
+  const valueLabelY = y - 5;
+
+  // Break label into max ~12-char lines for wrapping
+  const words = d.label.split(' ');
+  const labelParts: string[] = [];
+  let current = '';
+  for (const w of words) {
+    if ((current + ' ' + w).trim().length > 12) {
+      if (current) labelParts.push(current.trim());
+      current = w;
+    } else {
+      current = (current + ' ' + w).trim();
+    }
+  }
+  if (current) labelParts.push(current.trim());
+
+  return { x, y, barH, color, label: d.label, valueLabel, valueLabelY, labelParts };
+});
+
+// ── Horizontal-bar layout ────────────────────────────────────────────
+const H_MARGIN_TOP    = TITLE_H + TITLE_PAD + 8;
+const H_MARGIN_BOTTOM = 20;
+const H_MARGIN_LEFT   = 148;  // room for y-axis labels
+const H_MARGIN_RIGHT  = 48;   // room for value labels after bar
+
+const hPlotW = width  - H_MARGIN_LEFT - H_MARGIN_RIGHT;
+const hPlotH = height - H_MARGIN_TOP  - H_MARGIN_BOTTOM;
+
+// Gridlines (vertical for horizontal chart)
+const H_GRID_COUNT = 4;
+const hGridLines = Array.from({ length: H_GRID_COUNT + 1 }, (_, i) => {
+  const pct  = i / H_GRID_COUNT;
+  const xVal = Math.round(pct * maxValue);
+  const x    = H_MARGIN_LEFT + hPlotW * pct;
+  return { xVal, x };
+});
+
+// Bars
+const hBarGap = hPlotH * 0.18 / (data.length + 1);
+const hBarH   = (hPlotH - hBarGap * (data.length + 1)) / data.length;
+
+interface HBar {
+  x: number;
+  y: number;
+  barW: number;
+  color: string;
+  label: string;
+  valueLabel: string;
+  valueLabelX: number;
+}
+
+const hBars: HBar[] = data.map((d, i) => {
+  const barW        = (d.value / maxValue) * hPlotW;
+  const x           = H_MARGIN_LEFT;
+  const y           = H_MARGIN_TOP + hBarGap * (i + 1) + hBarH * i;
+  const color       = d.highlight ? highlightColor : barColor;
+  const valueLabel  = `${d.value}%`;
+  const valueLabelX = x + barW + 5;
+
+  return { x, y, barW, color, label: d.label, valueLabel, valueLabelX };
+});
+---
+
+<svg
+  viewBox={`0 0 ${width} ${height}`}
+  width="100%"
+  aria-label={title ?? 'Bar chart'}
+  role="img"
+  style="display:block; overflow: visible;"
+>
+  <!-- ── Chart title ──────────────────────────────────────────────── -->
+  {title && (
+    <text
+      x={width / 2}
+      y={TITLE_H - 4}
+      text-anchor="middle"
+      font-family="'Cormorant Garamond', Georgia, serif"
+      font-size="15"
+      font-weight="600"
+      fill="#1B1614"
+    >{title}</text>
+  )}
+
+  {!horizontal && (
+    <g class="v-chart">
+      <!-- Gridlines -->
+      {vGridLines.map(({ yVal, y }) => (
+        <g>
+          <line
+            x1={V_MARGIN_LEFT} y1={y}
+            x2={V_MARGIN_LEFT + vPlotW} y2={y}
+            stroke="#D8CEBF" stroke-width="1"
+          />
+          <text
+            x={V_MARGIN_LEFT - 4} y={y + 4}
+            text-anchor="end"
+            font-family="'IBM Plex Mono', monospace"
+            font-size="9"
+            fill="#6B5F5A"
+          >{yVal}</text>
+        </g>
+      ))}
+
+      <!-- Axis -->
+      <line
+        x1={V_MARGIN_LEFT} y1={V_MARGIN_TOP}
+        x2={V_MARGIN_LEFT} y2={V_MARGIN_TOP + vPlotH}
+        stroke="#D8CEBF" stroke-width="1.5"
+      />
+      <line
+        x1={V_MARGIN_LEFT} y1={V_MARGIN_TOP + vPlotH}
+        x2={V_MARGIN_LEFT + vPlotW} y2={V_MARGIN_TOP + vPlotH}
+        stroke="#D8CEBF" stroke-width="1.5"
+      />
+
+      <!-- Bars -->
+      {vBars.map((b) => (
+        <g>
+          <rect
+            x={b.x} y={b.y}
+            width={vBarW} height={b.barH}
+            fill={b.color}
+            rx="2"
+          />
+          <!-- Value label above bar -->
+          <text
+            x={b.x + vBarW / 2} y={b.valueLabelY}
+            text-anchor="middle"
+            font-family="'IBM Plex Mono', monospace"
+            font-size="9"
+            font-weight="400"
+            fill={b.color}
+          >{b.valueLabel}</text>
+          <!-- X-axis label (wrapped into multiple lines) -->
+          {b.labelParts.map((part, li) => (
+            <text
+              x={b.x + vBarW / 2}
+              y={V_MARGIN_TOP + vPlotH + 12 + li * 11}
+              text-anchor="middle"
+              font-family="'Libre Baskerville', Georgia, serif"
+              font-size="8.5"
+              fill="#1B1614"
+            >{part}</text>
+          ))}
+        </g>
+      ))}
+    </g>
+  )}
+
+  {horizontal && (
+    <g class="h-chart">
+      <!-- Gridlines (vertical) -->
+      {hGridLines.map(({ xVal, x }) => (
+        <g>
+          <line
+            x1={x} y1={H_MARGIN_TOP}
+            x2={x} y2={H_MARGIN_TOP + hPlotH}
+            stroke="#D8CEBF" stroke-width="1"
+          />
+          <text
+            x={x} y={H_MARGIN_TOP + hPlotH + 14}
+            text-anchor="middle"
+            font-family="'IBM Plex Mono', monospace"
+            font-size="9"
+            fill="#6B5F5A"
+          >{xVal}</text>
+        </g>
+      ))}
+
+      <!-- Axes -->
+      <line
+        x1={H_MARGIN_LEFT} y1={H_MARGIN_TOP}
+        x2={H_MARGIN_LEFT} y2={H_MARGIN_TOP + hPlotH}
+        stroke="#D8CEBF" stroke-width="1.5"
+      />
+      <line
+        x1={H_MARGIN_LEFT} y1={H_MARGIN_TOP + hPlotH}
+        x2={H_MARGIN_LEFT + hPlotW} y2={H_MARGIN_TOP + hPlotH}
+        stroke="#D8CEBF" stroke-width="1.5"
+      />
+
+      <!-- Bars -->
+      {hBars.map((b) => (
+        <g>
+          <rect
+            x={b.x} y={b.y}
+            width={b.barW} height={hBarH}
+            fill={b.color}
+            rx="2"
+          />
+          <!-- Value label at end of bar -->
+          <text
+            x={b.valueLabelX} y={b.y + hBarH / 2 + 4}
+            font-family="'IBM Plex Mono', monospace"
+            font-size="9"
+            fill={b.color}
+          >{b.valueLabel}</text>
+          <!-- Y-axis label (left side) -->
+          <text
+            x={H_MARGIN_LEFT - 6}
+            y={b.y + hBarH / 2 + 4}
+            text-anchor="end"
+            font-family="'Libre Baskerville', Georgia, serif"
+            font-size="9"
+            fill="#1B1614"
+          >{b.label}</text>
+        </g>
+      ))}
+    </g>
+  )}
+</svg>

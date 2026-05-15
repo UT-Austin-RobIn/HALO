@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600" role="img" aria-label="Figure Placeholder">
+  <!-- Background — warm parchment -->
+  <rect width="800" height="600" fill="#F5F0E8"/>
+
+  <!-- Subtle grain overlay via noise pattern -->
+  <filter id="grain">
+    <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/>
+    <feColorMatrix type="saturate" values="0"/>
+    <feBlend in="SourceGraphic" mode="multiply" result="blend"/>
+    <feComposite in="blend" in2="SourceGraphic" operator="in"/>
+  </filter>
+  <rect width="800" height="600" fill="#EDE5D8" filter="url(#grain)" opacity="0.3"/>
+
+  <!-- Outer decorative frame — double rule -->
+  <rect x="28" y="28" width="744" height="544" fill="none" stroke="#D8CEBF" stroke-width="1.5"/>
+  <rect x="36" y="36" width="728" height="528" fill="none" stroke="#D8CEBF" stroke-width="0.75"/>
+
+  <!-- Corner ornaments — top left -->
+  <line x1="28" y1="60"  x2="28"  y2="28"  stroke="#8B2635" stroke-width="2.5" opacity="0.5"/>
+  <line x1="28" y1="28"  x2="60"  y2="28"  stroke="#8B2635" stroke-width="2.5" opacity="0.5"/>
+  <!-- Corner ornaments — top right -->
+  <line x1="772" y1="60"  x2="772" y2="28"  stroke="#8B2635" stroke-width="2.5" opacity="0.5"/>
+  <line x1="772" y1="28"  x2="740" y2="28"  stroke="#8B2635" stroke-width="2.5" opacity="0.5"/>
+  <!-- Corner ornaments — bottom left -->
+  <line x1="28" y1="540"  x2="28"  y2="572" stroke="#8B2635" stroke-width="2.5" opacity="0.5"/>
+  <line x1="28" y1="572"  x2="60"  y2="572" stroke="#8B2635" stroke-width="2.5" opacity="0.5"/>
+  <!-- Corner ornaments — bottom right -->
+  <line x1="772" y1="540"  x2="772" y2="572" stroke="#8B2635" stroke-width="2.5" opacity="0.5"/>
+  <line x1="772" y1="572"  x2="740" y2="572" stroke="#8B2635" stroke-width="2.5" opacity="0.5"/>
+
+  <!-- Central image-frame icon -->
+  <!-- Outer rectangle of icon -->
+  <rect x="310" y="222" width="180" height="138" rx="4" fill="none" stroke="#6B5F5A" stroke-width="2" opacity="0.55"/>
+  <!-- Inner landscape hills (classic image placeholder shape) -->
+  <polyline points="310,318 352,274 388,302 430,256 490,318 490,360 310,360" fill="#D8CEBF" opacity="0.45"/>
+  <!-- Sun circle in icon -->
+  <circle cx="362" cy="255" r="18" fill="none" stroke="#6B5F5A" stroke-width="1.5" opacity="0.45"/>
+  <circle cx="362" cy="255" r="10" fill="#D8CEBF" opacity="0.5"/>
+
+  <!-- Horizontal divider below icon -->
+  <line x1="340" y1="400" x2="460" y2="400" stroke="#D8CEBF" stroke-width="1" opacity="0.9"/>
+
+  <!-- Label -->
+  <text
+    x="400"
+    y="432"
+    text-anchor="middle"
+    font-family="'IBM Plex Mono', 'Courier New', monospace"
+    font-size="13"
+    letter-spacing="3.5"
+    fill="#6B5F5A"
+    opacity="0.7"
+    font-weight="400"
+  >FIGURE PLACEHOLDER</text>
+</svg>

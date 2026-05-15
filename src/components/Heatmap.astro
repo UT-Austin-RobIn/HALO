@@ -1,0 +1,240 @@
+---
+interface HeatmapRow { label: string; highlight?: boolean; }
+interface HeatmapCol { label: string; sublabel?: string; isAccent?: boolean; }
+interface Props {
+  rows: HeatmapRow[];
+  cols: HeatmapCol[];
+  data: number[][];
+  separatorAfterRow?: number;
+  width?: number;
+  height?: number;
+}
+
+const { rows, cols, data, separatorAfterRow, width = 740, height = 340 } = Astro.props;
+
+const LABEL_W = 178, PAD_R = 12, PAD_T = 58, PAD_B = 22;
+const plotW = width - LABEL_W - PAD_R;
+const plotH = height - PAD_T - PAD_B;
+const cellW = plotW / cols.length;
+const cellH = plotH / rows.length;
+
+// 3-stop scale: near-white → terracotta (pivot 40%) → deep crimson
+const S0   = [244, 238, 230] as const;
+const S40  = [201, 107,  61] as const;
+const S100 = [ 92,  14,  26] as const;
+
+function cellBg(v: number): string {
+  const t = Math.max(0, Math.min(100, v));
+  let r: number, g: number, b: number;
+  if (t <= 40) {
+    const s = t / 40;
+    r = Math.round(S0[0] + s * (S40[0] - S0[0]));
+    g = Math.round(S0[1] + s * (S40[1] - S0[1]));
+    b = Math.round(S0[2] + s * (S40[2] - S0[2]));
+  } else {
+    const s = (t - 40) / 60;
+    r = Math.round(S40[0] + s * (S100[0] - S40[0]));
+    g = Math.round(S40[1] + s * (S100[1] - S40[1]));
+    b = Math.round(S40[2] + s * (S100[2] - S40[2]));
+  }
+  return `rgb(${r},${g},${b})`;
+}
+function cellFg(v: number): string { return v > 42 ? '#ffffff' : '#1B1614'; }
+
+const haloIndex = rows.findIndex(r => r.highlight);
+
+const colHeaders = cols.map((col, ci) => ({
+  label: col.label, sublabel: col.sublabel, isAccent: col.isAccent ?? false,
+  cx: LABEL_W + ci * cellW + cellW / 2,
+  labelY: PAD_T - (col.sublabel ? 20 : 8),
+  sublabelY: PAD_T - 6,
+}));
+
+const rowCells = rows.map((_, ri) =>
+  cols.map((_, ci) => {
+    const v = data[ri][ci];
+    return {
+      v, bg: cellBg(v), fg: cellFg(v),
+      rx: LABEL_W + ci * cellW + 2,
+      ry: PAD_T + ri * cellH + 2,
+      rw: cellW - 4, rh: cellH - 4,
+      tcx: LABEL_W + ci * cellW + cellW / 2,
+      tcy: PAD_T + ri * cellH + cellH / 2 + 3.5,
+    };
+  })
+);
+
+const rowLabels = rows.map((row, ri) => ({
+  label: row.label, highlight: row.highlight ?? false, ri,
+  x: LABEL_W - 10,
+  y: PAD_T + ri * cellH + cellH / 2 + 3.5,
+}));
+
+const highlights = rows
+  .map((row, ri) => ({ row, ri }))
+  .filter(({ row }) => row.highlight)
+  .map(({ ri }) => ({
+    x: LABEL_W + 1, y: PAD_T + ri * cellH + 1,
+    width: plotW - 2, height: cellH - 2,
+  }));
+
+const separatorY = separatorAfterRow !== undefined
+  ? PAD_T + (separatorAfterRow + 1) * cellH : null;
+
+const LEGEND_N = 20;
+const legX0 = LABEL_W + plotW * 0.48;
+const legW  = plotW * 0.52;
+const legRW = legW / LEGEND_N;
+const legY  = PAD_T + plotH + 4;
+const legendRects = Array.from({ length: LEGEND_N }, (_, i) => ({
+  x: legX0 + i * legRW,
+  fill: cellBg((i / (LEGEND_N - 1)) * 100),
+}));
+---
+
+<div class="hm-wrapper">
+  <svg class="hm-svg" viewBox={`0 0 ${width} ${height}`} width="100%"
+    style="display:block;overflow:visible;" role="img" aria-label="Simulation results heatmap">
+
+    {colHeaders.map((ch) => (
+      <g>
+        <text x={ch.cx} y={ch.labelY} text-anchor="middle"
+          font-family="'Libre Baskerville',Georgia,serif"
+          font-size="9.5" font-weight={ch.isAccent ? 'bold' : '400'}
+          fill={ch.isAccent ? '#8B2635' : '#1B1614'}>{ch.label}</text>
+        {ch.sublabel && (
+          <text x={ch.cx} y={ch.sublabelY} text-anchor="middle"
+            font-family="'IBM Plex Mono',monospace"
+            font-size="8" font-style="italic" fill="#6B5F5A">{ch.sublabel}</text>
+        )}
+      </g>
+    ))}
+
+    {rows.map((_, ri) => (
+      <g class="hm-row" data-row={ri}>
+        {rowCells[ri].map((c) => (
+          <g>
+            <rect x={c.rx} y={c.ry} width={c.rw} height={c.rh} fill={c.bg} rx="2" />
+            <text x={c.tcx} y={c.tcy} text-anchor="middle"
+              font-family="'IBM Plex Mono',monospace" font-size="9" fill={c.fg}>{c.v}%</text>
+          </g>
+        ))}
+        <rect class="hm-hit" x={0} y={PAD_T + ri * cellH}
+          width={width} height={cellH} fill="transparent" style="cursor:pointer;" />
+        <rect class="hm-dim" x={LABEL_W + 1} y={PAD_T + ri * cellH}
+          width={plotW - 2} height={cellH} fill="#F4EEE6" opacity="0" />
+      </g>
+    ))}
+
+    {rowLabels.map((rl) => (
+      <text class="hm-rl" data-row={rl.ri} x={rl.x} y={rl.y} text-anchor="end"
+        font-family="'Libre Baskerville',Georgia,serif"
+        font-size={rl.highlight ? '10' : '9.5'}
+        font-weight={rl.highlight ? '700' : '400'}
+        fill={rl.highlight ? '#8B2635' : '#1B1614'}
+        style="cursor:pointer;">{rl.label}</text>
+    ))}
+
+    {highlights.map((h) => (
+      <rect x={h.x} y={h.y} width={h.width} height={h.height}
+        fill="none" stroke="#8B2635" stroke-width="1.5" rx="2" />
+    ))}
+
+    {separatorY !== null && (
+      <line x1={LABEL_W} y1={separatorY} x2={LABEL_W + plotW} y2={separatorY}
+        stroke="#8B2635" stroke-width="1" stroke-dasharray="4 3" opacity="0.6" />
+    )}
+
+    <g>
+      {legendRects.map((lr) => (
+        <rect x={lr.x} y={legY} width={legRW} height="6" fill={lr.fill} />
+      ))}
+      <text x={legX0} y={legY + 13} text-anchor="start"
+        font-family="'IBM Plex Mono',monospace" font-size="7" fill="#6B5F5A">0%</text>
+      <text x={legX0 + legW / 2} y={legY + 13} text-anchor="middle"
+        font-family="'IBM Plex Mono',monospace" font-size="7" fill="#6B5F5A">success rate</text>
+      <text x={legX0 + legW} y={legY + 13} text-anchor="end"
+        font-family="'IBM Plex Mono',monospace" font-size="7" fill="#6B5F5A">100%</text>
+    </g>
+  </svg>
+</div>
+
+<script define:vars={{ rows, cols, data, haloIndex }}>
+(function () {
+  const wrapper = document.currentScript.previousElementSibling;
+  if (!wrapper || !wrapper.classList.contains('hm-wrapper')) return;
+
+  const rowGroups = wrapper.querySelectorAll('.hm-row');
+  const dimOverlays = wrapper.querySelectorAll('.hm-dim');
+  const haloData = data[haloIndex];
+  const TASK_SHORT = ['Retrieve', 'Return', 'Store N', 'Heat Stove', 'Avg'];
+  const GRAY = '#9A8F8A', BURG = '#8B2635', MF = "'IBM Plex Mono',monospace";
+
+  const tip = document.createElement('div');
+  tip.style.cssText = "position:fixed;z-index:9999;pointer-events:none;opacity:0;transition:opacity 120ms ease;background:#F5F0E8;border:1px solid #D8CEBF;border-radius:6px;padding:12px 14px;box-shadow:0 4px 20px rgba(27,22,20,.14);font-family:'Libre Baskerville',Georgia,serif;min-width:300px;max-width:340px;";
+  document.body.appendChild(tip);
+
+  function bar(x, baseY, w, h, fill) {
+    return `<rect x="${x.toFixed(1)}" y="${(baseY-h).toFixed(1)}" width="${w}" height="${Math.max(h,0).toFixed(1)}" fill="${fill}" rx="1"/>`;
+  }
+  function lbl(x, y, txt, fill, anchor) {
+    return `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="${anchor||'middle'}" font-size="7" fill="${fill}" font-family="${MF}">${txt}</text>`;
+  }
+
+  function buildSVG(ri) {
+    if (ri === haloIndex) return '<p style="font-size:11px;color:#6B5F5A;margin:6px 0 0;">HALO is the reference shown in all other comparisons.</p>';
+    const mData = data[ri];
+    const W = 300, H = 150, mL = 14, mR = 8, mT = 22, mB = 34;
+    const cW = W - mL - mR, cH = H - mT - mB;
+    const bW = 11, bGap = 3, gW = bW * 2 + bGap;
+    const slotW = cW / TASK_SHORT.length;
+    let s = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`;
+    s += `<line x1="${mL}" y1="${mT+cH}" x2="${mL+cW}" y2="${mT+cH}" stroke="#D8CEBF" stroke-width="1"/>`;
+    for (let i = 0; i < TASK_SHORT.length; i++) {
+      const gx = mL + i * slotW + (slotW - gW) / 2;
+      const mv = mData[i], hv = haloData[i];
+      const mH = (mv / 100) * cH, hH = (hv / 100) * cH;
+      const bY = mT + cH;
+      s += bar(gx, bY, bW, mH, GRAY);
+      s += lbl(gx + bW/2, bY - mH - 2, mv + '%', GRAY, 'middle');
+      s += bar(gx + bW + bGap, bY, bW, hH, BURG);
+      s += lbl(gx + bW + bGap + bW/2, bY - hH - 2, hv + '%', BURG, 'middle');
+      s += lbl(gx + gW/2, bY + 10, TASK_SHORT[i], '#1B1614', 'middle');
+    }
+    const lY = H - 10, lX = W/2 - 70;
+    s += `<rect x="${lX}" y="${lY-7}" width="8" height="8" fill="${GRAY}" rx="1"/>`;
+    s += lbl(lX + 11, lY, rows[ri].label, GRAY, 'start');
+    s += `<rect x="${lX+140}" y="${lY-7}" width="8" height="8" fill="${BURG}" rx="1"/>`;
+    s += lbl(lX + 151, lY, 'HALO', BURG, 'start');
+    s += '</svg>';
+    return s;
+  }
+
+  function showTip(ri, e) {
+    const isHalo = ri === haloIndex;
+    tip.innerHTML = `<div style="font-size:12px;font-weight:700;color:#1B1614;margin-bottom:${isHalo?'0':'6px'};">${isHalo ? 'HALO (ours)' : rows[ri].label + ' vs HALO'}</div>${buildSVG(ri)}`;
+    tip.style.opacity = '1';
+    posTip(e);
+  }
+  function posTip(e) {
+    const tw = tip.offsetWidth || 320, th = tip.offsetHeight || 200;
+    let x = e.clientX + 18, y = e.clientY - th / 2;
+    if (x + tw > window.innerWidth - 8) x = e.clientX - tw - 18;
+    if (y < 8) y = 8;
+    if (y + th > window.innerHeight - 8) y = window.innerHeight - th - 8;
+    tip.style.left = x + 'px'; tip.style.top = y + 'px';
+  }
+  function hideTip() { tip.style.opacity = '0'; }
+
+  function dimAll(except) {
+    dimOverlays.forEach((o, i) => o.setAttribute('opacity', i === except ? '0' : '0.55'));
+  }
+  function unDim() { dimOverlays.forEach(o => o.setAttribute('opacity', '0')); }
+
+  rowGroups.forEach((g, ri) => {
+    g.addEventListener('mouseenter', e => { dimAll(ri); showTip(ri, e); });
+    g.addEventListener('mousemove', posTip);
+  });
+  wrapper.addEventListener('mouseleave', () => { unDim(); hideTip(); });
+})();
+</script>

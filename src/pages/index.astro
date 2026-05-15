@@ -1,0 +1,1650 @@
+---
+import Layout from '../layouts/Layout.astro';
+import BarChart from '../components/BarChart.astro';
+import Heatmap from '../components/Heatmap.astro';
+
+// ── Simulation benchmark data (Average column only) ─────────────────
+const simData = [
+  { label: 'Standard Transformer',       value: 22 },
+  { label: 'Scene Memory Transformer',   value: 34 },
+  { label: 'SAM2Act++',                  value: 20 },
+  { label: 'ReMemBer',                   value: 18 },
+  { label: 'Hand-Designed Features',     value: 29 },
+  { label: 'Token Merging',              value: 29 },
+  { label: 'HALO w/o VQA',              value: 31 },
+  { label: 'HALO',                       value: 41, highlight: true },
+];
+
+// ── Simulation heatmap data ──────────────────────────────────────────
+const simRows = [
+  { label: 'Standard Transformer' },
+  { label: 'Scene Mem. Transf.' },
+  { label: 'SAM2Act++' },
+  { label: 'ReMemBer' },
+  { label: 'Hand-Designed' },
+  { label: 'Token Merging' },
+  { label: 'HALO w/o VQA' },
+  { label: 'HALO', highlight: true },
+];
+
+const simCols = [
+  { label: 'Retrieve Object',     sublabel: '(Spatial)' },
+  { label: 'Return to Container', sublabel: '(Relational)' },
+  { label: 'Store N Objects',     sublabel: '(Numerical)' },
+  { label: 'Heat Stove',          sublabel: '(Event-Time)' },
+  { label: 'Average',             isAccent: true },
+];
+
+const simMatrix = [
+  [26, 23, 12, 27, 22],
+  [53, 25, 17, 40, 34],
+  [39, 11, 27,  4, 20],
+  [36, 13, 21,  0, 18],
+  [68, 15, 21, 13, 29],
+  [29, 24, 25, 38, 29],
+  [42, 29, 17, 37, 31],
+  [64, 32, 26, 40, 41],
+];
+
+// ── Real-world per-task data ─────────────────────────────────────────
+const realWorldStd = [
+  { label: 'Retrieve Object',         value: 40 },
+  { label: 'Return to Container',     value: 30 },
+  { label: 'Store N Objects',         value: 20 },
+  { label: 'Heat Stove',              value: 40 },
+  { label: 'Store N Objs (Collab.)',   value: 50 },
+];
+const realWorldHalo = [
+  { label: 'Retrieve Object',         value: 55, highlight: true },
+  { label: 'Return to Container',     value: 40, highlight: true },
+  { label: 'Store N Objects',         value: 55, highlight: true },
+  { label: 'Heat Stove',              value: 60, highlight: true },
+  { label: 'Store N Objs (Collab.)',   value: 65, highlight: true },
+];
+
+// Per-task real-world data for video+chart rows
+const realWorldTasks = [
+  { name: 'Return to Same Container',  tag: 'Relational Info.',                    std: 30, halo: 40,
+    goal: 'Return the bowl to the same plate it was placed on top of earlier.',
+    videos: [
+      { src: 'washandreturn-success-left1-4x.mp4',          caption: 'HALO returns the bowl to the original plate' },
+      { src: 'washandreturn-success-left2-4x.mp4',          caption: 'HALO returns the bowl to the original plate' },
+      { src: 'washandreturn-success-left3-4x.mp4',          caption: 'HALO returns the bowl to the original plate' },
+      { src: 'washandreturn-success-right-retrying-4x.mp4', caption: 'HALO returns the bowl to the original plate after recovering from a failed grasp' },
+    ]
+  },
+  { name: 'Store N Objects',           tag: 'Numerical Info.',                     std: 20, halo: 55,
+    goal: 'Place exactly N chip packets in the drawer, then close the drawer.',
+    videos: [
+      { src: 'put_two_chips_packet-1-4x.mp4',  caption: 'HALO stores exactly 2 packets and closes the door' },
+      { src: 'put_two_chips_packet-2-4x.mp4',  caption: 'HALO stores exactly 2 packets and closes the door' },
+      { src: 'put_two_chips_packet-3-4x.mp4',  caption: 'HALO stores exactly 2 packets and closes the door' },
+    ]
+  },
+  { name: 'Heat Stove for T Minutes',  tag: 'Event-Time Info.',                    std: 40, halo: 60,
+    goal: 'Turn off the stove after the specified duration has elapsed.',
+    videos: [
+      { src: 'heatpot-wait-for-30-seconds-4x.mp4',   caption: 'HALO turns off the stove after 30 seconds' },
+      { src: 'heatpot-wait-for-30-seconds-2-4x.mp4', caption: 'HALO turns off the stove after 30 seconds' },
+      { src: 'heatpot-wait-for-1-minute-4x.mp4',     caption: 'HALO turns off the stove after 1 minute' },
+      { src: 'heatpot-wait-for-1-minute-2-4x.mp4',   caption: 'HALO turns off the stove after 1 minute' },
+      { src: 'heatpot-wait-for-90-seconds-4x.mp4',   caption: 'HALO turns off the stove after 90 seconds' },
+      { src: 'heatpot-wait-for-6-minutes-4x.mp4',    caption: 'HALO turns off the stove after 6 minutes' },
+      { src: 'heatpot-wait-for-8-minutes-4x.mp4',    caption: 'HALO turns off the stove after 8 minutes' },
+    ]
+  },
+  { name: 'Store N Objects (Human-Robot Collaboration)', tag: 'Numerical Info. + Human-Robot Collab.', std: 50, halo: 65,
+    goal: 'Place 3 purple cups and 1 green cup into the bag. The human places k purple cups first; the robot must complete the rest.',
+    videos: [
+      { src: 'store-3-human-1-robot-2-4x.mp4',   caption: 'Human places 1 cup; HALO places the remaining 2' },
+      { src: 'store-3-human-1-robot-2-2-4x.mp4', caption: 'Human places 1 cup; HALO places the remaining 2' },
+      { src: 'store-3-human-1-robot-2-3-4x.mp4', caption: 'Human places 1 cup; HALO places the remaining 2' },
+      { src: 'store-3-human-1-robot-2-4-4x.mp4', caption: 'Human places 1 cup; HALO places the remaining 2' },
+      { src: 'store-3-human-2-robot-1-4x.mp4',   caption: 'Human places 2 cups; HALO places the remaining 1' },
+      { src: 'store-3-human-2-robot-1-2-4x.mp4', caption: 'Human places 2 cups; HALO places the remaining 1' },
+      { src: 'store-n-human-2-robot-1-4x.mp4',   caption: 'Human places 2 cups; HALO places the remaining 1' },
+    ]
+  },
+  { name: 'Retrieve Object',           tag: 'Spatial Info.',                       std: 40, halo: 55,
+    goal: 'Fetch the object from where it was last seen, now out of view.',
+    videos: [
+      { src: 'retrieve_granola_bar.mp4',   caption: 'HALO retrieves the granola bar from its last seen location' },
+      { src: 'retrieve_granola_bar_2.mp4', caption: 'HALO retrieves the granola bar from its last seen location' },
+      { src: 'retrieve_granola_bar_3.mp4', caption: 'HALO retrieves the granola bar from its last seen location' },
+      { src: 'retrieve_granola_bar_4.mp4', caption: 'HALO retrieves the granola bar from its last seen location' },
+    ],
+  },
+];
+
+// ── Simulation rollout videos ────────────────────────────────────────
+const simVideos = [
+  { src: 'retrieve_oil-sim.mp4',    caption: 'Retrieve Object: oil bottle retrieved from its last seen location' },
+  { src: 'washandreturn-sim.mp4',   caption: 'Return to Same Container: bowl returned to the original plate' },
+  { src: 'storeallbreads-sim.mp4',  caption: 'Store N Objects: bread items stored and microwave door closed' },
+  { src: 'heatpot-sim.mp4',         caption: 'Heat Stove: stove turned off after the specified duration' },
+];
+
+// ── Failure case groups ──────────────────────────────────────────────
+const failureGroups = [
+  {
+    title: 'Manipulation Failures',
+    tag: 'Grasp / Motion Error',
+    videos: [
+      { src: 'heatpot-manip-failure-1-4x.mp4',     caption: 'Grasp failure on the stove knob: robot misses the target' },
+      { src: 'heatpot-manip-failure-2-4x.mp4',     caption: 'Robot contacts the knob but slips during the twist' },
+      { src: 'washandreturn-manip-failure-4x.mp4',  caption: 'Grasp failure on the bowl due to incorrect grasp pose' },
+      { src: 'washandreturn-manip-failure-2-4x.mp4', caption: 'Robot fails to grasp the bowl' },
+      { src: 'washandreturn-manip-failure-3-4x.mp4', caption: 'Robot fails to grasp the bowl' },
+      { src: 'store-3-manip-failure-4x.mp4',        caption: 'Cup falls during grasping' },
+    ],
+  },
+  {
+    title: 'Memory Retrieval Failures',
+    tag: 'Incorrect Retrieval',
+    videos: [
+      { src: 'washandreturn-memory-failure-4x.mp4',                                    caption: 'Robot retrieves the wrong plate due to not recalling where the bowl was originally placed' },
+      { src: 'washandreturn-interesting-memory-failure-placement-failure-4x.mp4',       caption: 'Memory error causes subtask misidentification; subsequent placement also fails' },
+      { src: 'store-3-human-2-robot-2-failure-4x.mp4',                                 caption: 'Robot miscounts the human contribution and places too many objects' },
+    ],
+  },
+];
+
+const funFailure = {
+  src: 'heatpot-knob-break-hahahaha-4x.mp4',
+  caption: "The knob snaps clean off mid-twist. The policy was doing great.",
+};
+
+// ── Alternative architectures — Retrieve Object task ────────────────
+const altArchData = [
+  { label: 'LSTM',                    value: 14 },
+  { label: 'Mamba',                   value: 20 },
+  { label: 'TransformerXL',           value: 12 },
+  { label: 'Window Attention',        value: 13 },
+  { label: 'Strided Attention',       value: 20 },
+  { label: 'Hierarchical Attention',  value: 28 },
+  { label: 'Gated Attention',         value: 45 },
+  { label: 'HALO',                    value: 64, highlight: true },
+];
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+
+const bibtex = `@inproceedings{shah2026halo,
+  title={Memory Retrieval in Visuomotor Policies for Long-Horizon Robot Control},
+  author={Shah, Rutav and Li, Yisu and Bello, Femi and Zhu, Yuke and Mart{\\'{i}}n-Mart{\\'{i}}n, Roberto},
+  booktitle={Proceedings of Robotics: Science and Systems},
+  year={2026}
+}`;
+---
+
+<Layout
+  title="HALO — Memory Retrieval in Visuomotor Policies for Long-Horizon Robot Control"
+  description="HALO: a visuomotor policy with attention-based memory retrieval for long-horizon robot control. Rutav Shah, Yisu Li, Femi Bello, Yuke Zhu, Roberto Martín-Martín. RSS 2026."
+>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       HERO / HEADER
+  ═══════════════════════════════════════════════════════════════ -->
+  <header class="hero">
+    <div class="container hero-inner">
+      <div class="hero-badges">
+        <p class="venue-badge">RSS 2026</p>
+        <p class="method-name">HALO</p>
+      </div>
+
+      <h1 class="paper-title">
+        <span class="title-line">Memory Retrieval in Visuomotor Policies</span>
+        <span class="title-line">for Long&#8209;Horizon Robot Control</span>
+      </h1>
+
+      <div class="authors">
+        <span class="author corresponding">
+          <a href="#">Rutav Shah</a><sup>†</sup>
+        </span><span class="author-sep">,&nbsp;</span>
+        <span class="author">
+          <a href="#">Yisu Li</a><sup>*</sup>
+        </span><span class="author-sep">,&nbsp;</span>
+        <span class="author">
+          <a href="#">Femi Bello</a><sup>*</sup>
+        </span><span class="author-sep">,&nbsp;</span>
+        <span class="author">
+          <a href="#">Yuke Zhu</a>
+        </span><span class="author-sep">,&nbsp;</span>
+        <span class="author">
+          <a href="#">Roberto Mart&iacute;n-Mart&iacute;n</a>
+        </span>
+      </div>
+
+      <p class="affiliation">The University of Texas at Austin</p>
+
+      <p class="author-notes">
+        <sup>*</sup>&thinsp;Equal contribution&emsp;
+        <sup>†</sup>&thinsp;Corresponding author
+      </p>
+
+      <div class="links-row">
+        <a class="link-pill" href="#">Code</a>
+        <a class="link-pill" href="#">arXiv</a>
+      </div>
+    </div>
+  </header>
+
+  <hr class="section-divider" />
+
+  <!-- ══════════════════════════════════════════════════════════════
+       ABSTRACT
+  ═══════════════════════════════════════════════════════════════ -->
+  <section class="section" id="abstract">
+    <div class="container">
+      <h2 class="section-heading">Abstract</h2>
+
+      <p class="body-text abstract-short">
+        HALO is a visuomotor policy for long-horizon robot control that retrieves information from
+        up to eight minutes of past interaction relevant to predicting the current action.
+        Long-context policies trained via imitation learning struggle with spurious correlations
+        from history and compounding prediction errors. HALO addresses these challenges by
+        distilling VLM priors through video question-answering supervision and applying Top-K
+        sparse attention. Notably, HALO outperforms both text-based memory summarization and
+        hand-engineered feature stores, as retaining raw observations and actions lets the policy exploit
+        fine-grained details that VLMs discard during summarization and that human designers
+        overlook when hand-crafting features.
+      </p>
+
+      <details class="abstract-details">
+        <summary class="abstract-toggle">Read full abstract</summary>
+        <div class="abstract-full">
+          <p class="body-text">
+            General-purpose robots operating in partially observable environments, such as homes, require
+            memory to support autonomy. They must recall diverse information from the past, such as where
+            objects were placed, which tasks a human partner has completed, and when an appliance was
+            turned on, to accomplish a wide range of tasks. Achieving this versatility requires a memory
+            retrieval mechanism that generalizes well across tasks. However, hand-designed or
+            heuristic-based methods rely on task-specific assumptions that may not transfer to different
+            settings.
+          </p>
+          <p class="body-text">
+            Transformer architectures that use attention over long contexts for memory retrieval provide
+            a promising alternative, as they learn retrieval from data without task-specific assumptions.
+            However, directly incorporating long-context transformer architecture into imitation learning
+            from offline data introduces two key challenges: (1) the policy may learn spurious
+            correlations between information from the past and predicted actions, and (2) errors
+            accumulate over time in the memory due to prediction inaccuracies and their compounding
+            interactions with the environment, leading to model drift and cascading failures in
+            long-horizon control.
+          </p>
+          <p class="body-text">
+            To address both challenges, we introduce HALO, a visuomotor policy with an attention-based
+            memory retrieval mechanism for long-horizon control. To suppress spurious correlations, HALO
+            leverages vision-language model (VLM) priors to steer retrieval toward task-relevant
+            information. Concretely, it generates task-relevant, memory-dependent question–answer pairs
+            from demonstration trajectories and trains the policy jointly with a video
+            question-answering objective, transferring VLM priors to the visuomotor policy. To reduce
+            the impact of accumulated errors in memory during closed-loop control, HALO uses sparse
+            attention that restricts retrieval to only the most relevant parts of the history. Together,
+            these components enable more reliable long-horizon control by guiding the policy to retrieve
+            task-relevant information from up to eight minutes of past experience.
+          </p>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <hr class="section-divider" />
+
+  <!-- ══════════════════════════════════════════════════════════════
+       PROBLEM OVERVIEW
+  ═══════════════════════════════════════════════════════════════ -->
+  <section class="section" id="overview">
+    <div class="container">
+      <h2 class="section-heading">Problem Overview</h2>
+
+      <p class="body-text">
+        Long-horizon manipulation requires reasoning over context that is no longer visible: where an object
+        was placed, how many items were stored, or when a stove was activated. We study tasks spanning up to
+        eight minutes, where the policy must retrieve from its history of past observations and actions.
+      </p>
+
+      <figure class="overview-figure">
+        <img
+          src={`${base}/pull_figurev3.png`}
+          alt="Overview of the long-horizon robot control problem: the robot must retrieve task-relevant information from a long history of past observations"
+          loading="eager"
+        />
+        <figcaption class="overview-caption">
+          <strong>Figure 1.</strong> HALO operates over long episodes where key context is not visible
+          in the current frame. The policy retrieves task-relevant frames from up to eight minutes of
+          history, recovering spatial, relational, numerical, and event-timing information to inform the current action.
+        </figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <hr class="section-divider" />
+
+  <!-- ══════════════════════════════════════════════════════════════
+       METHOD
+  ═══════════════════════════════════════════════════════════════ -->
+  <section class="section" id="method">
+    <div class="container">
+      <h2 class="section-heading">Method</h2>
+
+      <p class="body-text method-overview">
+        HALO is a visuomotor policy with an attention-based memory retrieval mechanism for long-horizon control.
+        Two challenges arise when applying long-context transformers to imitation learning: policies may learn
+        spurious correlations from irrelevant history, and prediction errors accumulate over time during
+        closed-loop execution. HALO addresses both with the two components below.
+      </p>
+
+      <figure class="method-figure">
+        <img
+          src={`${base}/method-overview.svg`}
+          alt="HALO method overview: VQA-based VLM prior distillation and Top-K sparse attention"
+        />
+        <figcaption>
+          HALO overview. VLM-generated question–answer pairs supervise attention toward task-relevant history frames (left).
+          Top-K sparse attention restricts retrieval to the most relevant context, reducing error propagation during closed-loop control (right).
+        </figcaption>
+      </figure>
+
+      <div class="method-components">
+
+        <!-- ── VQA Component ─────────────────────────────────── -->
+        <div class="method-component">
+          <h3 class="subsection-heading">Distilling Vision-Language Model Priors via Video Question-Answering</h3>
+          <p class="body-text">
+            HALO generates task-relevant question–answer pairs from demonstration trajectories using a VLM pipeline.
+            The policy is then co-trained with a video QA objective alongside the imitation learning objective.
+            This induces priors over retrieving task-relevant information from history, reducing spurious correlations during closed-loop control.
+          </p>
+          <div class="pseudo-two-col">
+
+            <div class="pseudo-col">
+              <p class="pseudo-header">VQA Generation</p>
+              <div class="pipeline-flow">
+                <div class="pipeline-step">
+                  <span class="step-label">Input</span>
+                  trajectory, task instruction
+                </div>
+                <div class="pipeline-arrow">&#8595;</div>
+                <div class="pipeline-step">
+                  <span class="step-label">Summarize</span>
+                  object detector + VLM &rarr; text description of scene &amp; activities
+                </div>
+                <div class="pipeline-arrow">&#8595;</div>
+                <div class="pipeline-step">
+                  <span class="step-label">Generate</span>
+                  sample a frame, LLM generates a question + answer
+                  <div class="pipeline-example">Q: "Where was the granola bar at t=8?"<br/>A: "Right side of the countertop"</div>
+                </div>
+                <div class="pipeline-arrow">&#8595;</div>
+                <div class="pipeline-step">
+                  <span class="step-label">Filter</span>
+                  score relevance + correctness &rarr; add to dataset
+                </div>
+              </div>
+            </div>
+
+            <div class="pseudo-col">
+              <p class="pseudo-header">Joint Training</p>
+              <pre class="pseudocode">for each step:
+
+  # imitation: predict expert action
+  L_IL = -log P(expert action |
+               trajectory, task)
+
+  # VQA: answer from history
+  L_VQA = -log P(answer |
+                trajectory, question)
+
+  # joint update
+  L = L_IL + λ · L_VQA
+  # update policy to minimize L</pre>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ── Top-K Component ───────────────────────────────── -->
+        <div class="method-component">
+          <h3 class="subsection-heading">Reducing Model Drift with Top-K Attention Sparsification</h3>
+          <p class="body-text">
+            During inference, the policy attends over all past observations and actions in its history context.
+            This full-context attention introduces noise from accumulated errors in the history.
+            To reduce the impact of this noise, we sparsify the attention to retrieve only the most informative pieces of information from history.
+            A straight-through estimator keeps the discrete selection differentiable during training.
+          </p>
+          <div class="pseudo-two-col">
+
+            <div class="pseudo-col">
+              <p class="pseudo-header">Training</p>
+              <pre class="pseudocode">for i in 0..t-1:
+  score[i] = dot(query, key[i])
+
+# hard top-k mask
+top_idx  = argsort(score)[-k:]
+mask     = zeros(t); mask[top_idx] = 1
+
+# straight-through estimator:
+# forward uses hard mask,
+# backward grad flows through score
+mask_st  = mask.detach() + score
+         - score.detach()
+
+context  = softmax(mask_st) @ val</pre>
+            </div>
+
+            <div class="pseudo-col">
+              <p class="pseudo-header">Evaluation</p>
+              <pre class="pseudocode">for i in 0..t-1:
+  score[i] = dot(query, key[i])
+
+# hard Top-K (no gradient needed)
+top_idx = argsort(score)[-k:]
+attn    = softmax(score[top_idx])
+context = attn @ val[top_idx]</pre>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <hr class="section-divider" />
+
+  <!-- ══════════════════════════════════════════════════════════════
+       RESULTS
+  ═══════════════════════════════════════════════════════════════ -->
+  <section class="section" id="results">
+    <div class="container">
+      <h2 class="section-heading">Results</h2>
+
+      <!-- Real-World Experiments -->
+      <div class="results-block">
+        <h3 class="subsection-heading">Real-World Experiments</h3>
+        <p class="body-text results-caption">
+          Robot rollouts on a physical robot across five tasks (20 rollouts per task). HALO improves on every task, reaching <strong>55%</strong> average success versus 36% for the Standard Transformer baseline.
+        </p>
+        <div class="task-results-list">
+          {realWorldTasks.map((task) => (
+            <div class="task-result-row">
+              <div class="task-row-header">
+                <span class="task-row-title">{task.name}</span>
+                <span class="video-tag">{task.tag}</span>
+                <span class="task-goal task-goal--header"><strong>Goal:</strong> {task.goal}</span>
+              </div>
+              <div class="task-row-content">
+              <div class="task-video-col">
+                {task.videos.length === 0 ? (
+                  <div class="video-wrap vc-placeholder">
+                    <span class="vc-placeholder-text">Video coming soon</span>
+                  </div>
+                ) : (
+                  <div class="vc">
+                    <div class="vc-track">
+                      {task.videos.map((v) => (
+                        <div class="vc-slide">
+                          <div class="video-wrap">
+                            <video poster={`${base}/placeholder-video.svg`} autoplay muted loop playsinline controls>
+                              <source src={`${base}/videos/${v.src}`} type="video/mp4" />
+                              Your browser does not support the video element.
+                            </video>
+                          </div>
+                          <p class="vc-caption">{v.caption}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {task.videos.length > 1 && (
+                      <div class="vc-controls">
+                        <button class="vc-btn vc-prev" aria-label="Previous video">&#8592;</button>
+                        <div class="vc-dots">
+                          {task.videos.map((_, vi) => (
+                            <button class={`vc-dot${vi === 0 ? ' vc-dot--active' : ''}`} aria-label={`Video ${vi + 1}`}></button>
+                          ))}
+                        </div>
+                        <button class="vc-btn vc-next" aria-label="Next video">&#8594;</button>
+                      </div>
+                    )}
+                  </div>
+                )}
+                <div class="task-video-meta"></div>
+              </div>
+              <div class="task-chart-col">
+                <BarChart
+                  data={[
+                    { label: 'Standard Transformer', value: task.std },
+                    { label: 'HALO',             value: task.halo, highlight: true },
+                  ]}
+                  maxValue={100}
+                  width={200}
+                  height={280}
+                />
+              </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <!-- Simulation Benchmark -->
+      <div class="results-block">
+        <h3 class="subsection-heading">Simulation Benchmark</h3>
+        <p class="body-text results-caption">
+          Average task success rate across four simulation tasks (50 rollouts each).
+          HALO achieves <strong>41%</strong> average success, outperforming all baselines.
+        </p>
+        <div class="sim-block">
+          <div class="sim-block__heatmap">
+            <Heatmap
+              rows={simRows}
+              cols={simCols}
+              data={simMatrix}
+              separatorAfterRow={5}
+              width={740}
+              height={340}
+            />
+          </div>
+          <div class="sim-block__videos">
+          <div class="vc">
+            <div class="vc-track">
+              {simVideos.map((v) => (
+                <div class="vc-slide">
+                  <div class="video-wrap video-wrap--wide">
+                    <video poster={`${base}/placeholder-video.svg`} autoplay muted loop playsinline controls>
+                      <source src={`${base}/videos/${v.src}`} type="video/mp4" />
+                      Your browser does not support the video element.
+                    </video>
+                  </div>
+                  <p class="vc-caption">{v.caption}</p>
+                </div>
+              ))}
+            </div>
+            <div class="vc-controls">
+              <button class="vc-btn vc-prev" aria-label="Previous video">&#8592;</button>
+              <div class="vc-dots">
+                {simVideos.map((_, vi) => (
+                  <button class={`vc-dot${vi === 0 ? ' vc-dot--active' : ''}`} aria-label={`Video ${vi + 1}`}></button>
+                ))}
+              </div>
+              <button class="vc-btn vc-next" aria-label="Next video">&#8594;</button>
+            </div>
+          </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Key Takeaways -->
+      <div class="results-block takeaways-block">
+        <h3 class="subsection-heading">Key Takeaways</h3>
+        <ul class="takeaways-list">
+          <li><strong>Text summaries lose granular detail.</strong> ReMemBer (−23&nbsp;pts) stores VLM text descriptions of observations, but these discard fine-grained details such as precise event timing and low-level action information to retrace the path where the object was found, which are critical for low-level control.</li>
+          <li><strong>Learning retrieval beats engineering it.</strong> Hand-Designed Features achieves competitive spatial performance, showing that spatial cues are well-captured even without learning, yet HALO matches this without any manually designed rules. Surprisingly, HALO outperforms hand-designed features overall, as the policy can exploit additional information missed by human designers, such as neighboring visual frames that provide implicit cues about the environment.</li>
+          <li><strong>Selective retrieval outperforms compression.</strong> Token Merging and Scene Memory Transformer compress history, discarding fine-grained detail. HALO retains the full context and retrieves selectively, providing flexibility to recollect any information but reducing the impact of noise at the same time.</li>
+          <li><strong>No single method wins every task; HALO wins overall.</strong> Each baseline excels in its specialty (Hand-Designed on spatial, SAM2Act++ on counting) but fails elsewhere. HALO's 41% average comes from competitive performance across all four memory types.</li>
+        </ul>
+      </div>
+
+    </div>
+  </section>
+
+
+  <hr class="section-divider" />
+
+  <!-- ══════════════════════════════════════════════════════════════
+       FAILURE ANALYSIS
+  ═══════════════════════════════════════════════════════════════ -->
+  <section class="section" id="failures">
+    <div class="container">
+      <h2 class="section-heading">Failure Cases</h2>
+      <p class="body-text section-intro">
+        We categorize failures into two categories: manipulation and memory failure. We find that
+        HALO reduces manipulation failures by an absolute 8% and memory failures by 25% over the
+        Standard Transformer baseline in the Retrieve Object task. Below we show the failure modes of HALO. We hope it inspires future work.
+      </p>
+
+      <div class="failure-groups">
+        {failureGroups.map((group) => (
+          <div class="video-card video-card--failure">
+            <div class="failure-group-header">
+              <span class="video-title">{group.title}</span>
+              <span class="video-tag video-tag--failure">{group.tag}</span>
+            </div>
+            <div class="vc">
+              <div class="vc-track">
+                {group.videos.map((v) => (
+                  <div class="vc-slide">
+                    <div class="video-wrap">
+                      <video poster={`${base}/placeholder-video.svg`} autoplay muted loop playsinline controls>
+                        <source src={`${base}/videos/${v.src}`} type="video/mp4" />
+                        Your browser does not support the video element.
+                      </video>
+                    </div>
+                    <p class="vc-caption">{v.caption}</p>
+                  </div>
+                ))}
+              </div>
+              {group.videos.length > 1 && (
+                <div class="vc-controls">
+                  <button class="vc-btn vc-prev" aria-label="Previous video">&#8592;</button>
+                  <div class="vc-dots">
+                    {group.videos.map((_, vi) => (
+                      <button class={`vc-dot${vi === 0 ? ' vc-dot--active' : ''}`} aria-label={`Video ${vi + 1}`}></button>
+                    ))}
+                  </div>
+                  <button class="vc-btn vc-next" aria-label="Next video">&#8594;</button>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div class="failure-fun video-card">
+        <div class="failure-group-header">
+          <span class="video-title">Sometimes the Stove Just Breaks</span>
+          <span class="video-tag video-tag--fun">Not our fault</span>
+        </div>
+        <div class="video-wrap">
+          <video poster={`${base}/placeholder-video.svg`} autoplay muted loop playsinline controls>
+            <source src={`${base}/videos/${funFailure.src}`} type="video/mp4" />
+            Your browser does not support the video element.
+          </video>
+        </div>
+        <p class="vc-caption">{funFailure.caption}</p>
+      </div>
+    </div>
+  </section>
+
+  <hr class="section-divider" />
+
+  <!-- ══════════════════════════════════════════════════════════════
+       BIBTEX / CITATION
+  ═══════════════════════════════════════════════════════════════ -->
+  <section class="section" id="citation">
+    <div class="container">
+      <h2 class="section-heading">Citation</h2>
+      <p class="body-text">
+        If you find this work useful, please cite:
+      </p>
+
+      <div class="bibtex-block">
+        <div class="bibtex-header">
+          <span class="bibtex-label">BibTeX</span>
+          <button
+            class="copy-btn"
+            onclick={`navigator.clipboard.writeText(${JSON.stringify(bibtex)}).then(()=>{this.textContent='Copied';setTimeout(()=>{this.textContent='Copy'},2000)}).catch(()=>{})`}
+          >
+            Copy
+          </button>
+        </div>
+        <pre class="bibtex-pre"><code>{bibtex}</code></pre>
+      </div>
+    </div>
+  </section>
+
+<script>
+(function () {
+  document.querySelectorAll('.vc').forEach(function (vc) {
+    const track = vc.querySelector('.vc-track');
+    const slides = vc.querySelectorAll('.vc-slide');
+    const dots = vc.querySelectorAll('.vc-dot');
+    if (!track || slides.length <= 1) return;
+
+    let current = 0;
+
+    function goTo(idx) {
+      current = ((idx % slides.length) + slides.length) % slides.length;
+      track.scrollTo({ left: current * track.clientWidth, behavior: 'smooth' });
+      dots.forEach(function (d, i) {
+        d.classList.toggle('vc-dot--active', i === current);
+      });
+    }
+
+    const prevBtn = vc.querySelector('.vc-prev');
+    const nextBtn = vc.querySelector('.vc-next');
+    if (prevBtn) prevBtn.addEventListener('click', function () { goTo(current - 1); });
+    if (nextBtn) nextBtn.addEventListener('click', function () { goTo(current + 1); });
+    dots.forEach(function (d, i) { d.addEventListener('click', function () { goTo(i); }); });
+
+    track.addEventListener('scroll', function () {
+      const idx = Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
+      if (idx !== current) {
+        current = idx;
+        dots.forEach(function (d, i) { d.classList.toggle('vc-dot--active', i === current); });
+      }
+    });
+  });
+})();
+</script>
+
+</Layout>
+
+<style>
+  /* ── Hero ─────────────────────────────────────────────────────── */
+  .hero {
+    padding-block: 5rem 3.5rem;
+    text-align: center;
+  }
+
+  .hero-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .hero-badges {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .venue-badge {
+    display: inline-block;
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 2px solid var(--accent);
+    padding: 0.2rem 0.75rem;
+    border-radius: var(--radius-sm);
+    margin-bottom: 0;
+  }
+
+  .paper-title {
+    font-family: var(--font-display);
+    font-size: clamp(1.6rem, 3vw, 2.8rem);
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--text);
+    max-width: none;
+    letter-spacing: -0.01em;
+  }
+
+  .title-line {
+    display: block;
+  }
+
+  .method-name {
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    margin: 0;
+  }
+
+  .authors {
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    color: var(--text);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: baseline;
+    gap: 0;
+    margin-top: 0.25rem;
+  }
+
+  .author a {
+    color: var(--text);
+    border-bottom: 1px solid var(--divider);
+    transition: color var(--transition), border-color var(--transition);
+  }
+
+  .author a:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+    text-decoration: none;
+  }
+
+  .corresponding a {
+    font-weight: 700;
+  }
+
+  .author-sep {
+    color: var(--text-muted);
+  }
+
+  .affiliation {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+    font-style: italic;
+  }
+
+  .author-notes {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    letter-spacing: 0.03em;
+    max-width: none;
+    margin-bottom: 0;
+  }
+
+  .links-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    justify-content: center;
+    margin-top: 1rem;
+  }
+
+  .link-pill {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: 700;
+    color: var(--accent);
+    border: 1.5px solid var(--accent);
+    border-radius: 999px;
+    padding: 0.3rem 1rem;
+    letter-spacing: 0.02em;
+    transition: background var(--transition), color var(--transition);
+    text-decoration: none;
+  }
+
+  .link-pill:hover {
+    background: var(--accent);
+    color: #fff;
+    text-decoration: none;
+  }
+
+  /* ── Section headings ─────────────────────────────────────────── */
+  .section-heading {
+    font-family: var(--font-display);
+    font-size: var(--text-3xl);
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 1.5rem;
+    letter-spacing: -0.01em;
+    border-bottom: 2px solid var(--divider);
+    padding-bottom: 0.5rem;
+  }
+
+  .subsection-heading {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 0.75rem;
+    margin-top: 0;
+  }
+
+  .body-text {
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    color: var(--text);
+    line-height: 1.75;
+    max-width: 70ch;
+    margin-bottom: 1rem;
+  }
+
+  .method-overview-block {
+    display: grid;
+    grid-template-columns: 1fr 1.6fr;
+    gap: 1.5rem;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .method-overview {
+    max-width: none;
+    margin-bottom: 1.25rem;
+    color: var(--text-muted);
+    text-align: justify;
+    hyphens: auto;
+  }
+
+  #abstract .abstract-short {
+    font-size: 0.92rem;
+    text-align: justify;
+    hyphens: auto;
+    max-width: none;
+  }
+
+  .abstract-details {
+    margin-top: 0.75rem;
+  }
+
+  .abstract-toggle {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--accent);
+    cursor: pointer;
+    list-style: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0;
+    border-bottom: 1px solid var(--accent);
+    transition: opacity var(--transition);
+  }
+
+  .abstract-toggle::-webkit-details-marker { display: none; }
+
+  .abstract-toggle::before {
+    content: '+';
+    font-weight: 700;
+    font-size: 1rem;
+    line-height: 1;
+  }
+
+  details[open] .abstract-toggle::before { content: '−'; }
+
+  .abstract-full {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--divider);
+  }
+
+  .abstract-full .body-text {
+    font-size: 0.92rem;
+    text-align: justify;
+    hyphens: auto;
+    max-width: none;
+  }
+
+  #abstract .body-text {
+    font-size: 0.92rem;
+    text-align: justify;
+    hyphens: auto;
+    max-width: none;
+  }
+
+  .section-intro {
+    color: var(--text-muted);
+    margin-bottom: 1.75rem;
+    text-align: justify;
+    hyphens: auto;
+    max-width: none;
+  }
+
+  /* ── Method ───────────────────────────────────────────────────── */
+  .method-components {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+    margin-top: 1.25rem;
+    margin-bottom: 0;
+  }
+
+  .method-component {
+    background: var(--bg-surface);
+    border: 1px solid var(--divider);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+  }
+
+  .method-component .body-text {
+    max-width: none;
+    text-align: justify;
+    hyphens: auto;
+  }
+
+  /* ── Pseudocode & pipeline ──────────────────────────────────── */
+  .pseudo-two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.85rem;
+    margin-top: 0.85rem;
+    margin-bottom: 0.25rem;
+    align-items: stretch;
+  }
+
+  .pseudo-col {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .pseudo-col .pseudocode,
+  .pseudo-col .pipeline-flow {
+    flex: 1;
+  }
+
+  .pseudo-header {
+    font-family: var(--font-mono);
+    font-size: 0.67rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.4rem;
+  }
+
+  .pseudocode {
+    background: var(--bg);
+    border: 1px solid var(--divider);
+    border-radius: var(--radius-sm);
+    padding: 0.7rem 0.85rem;
+    font-family: var(--font-mono);
+    font-size: 0.71rem;
+    line-height: 1.65;
+    white-space: pre;
+    overflow-x: auto;
+    color: var(--text);
+    margin: 0;
+  }
+
+  .pipeline-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .pipeline-step {
+    background: var(--bg);
+    border: 1px solid var(--divider);
+    border-radius: var(--radius-sm);
+    padding: 0.45rem 0.7rem;
+    font-family: var(--font-body);
+    font-size: 0.77rem;
+    line-height: 1.4;
+    color: var(--text);
+  }
+
+  .step-label {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.12rem;
+  }
+
+  .pipeline-arrow {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    line-height: 1;
+    padding: 0.12rem 0;
+  }
+
+  .pipeline-example {
+    margin-top: 0.35rem;
+    padding: 0.3rem 0.5rem;
+    background: rgba(139, 38, 53, 0.05);
+    border-left: 2px solid var(--accent);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    line-height: 1.5;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  .overview-figure {
+    margin-top: 1.75rem;
+    background: #FAF8F4;
+    border: 1px solid var(--divider);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+  }
+
+  .overview-figure img {
+    width: 100%;
+    height: auto;
+    display: block;
+    background: #FAF8F4;
+    padding: 0.75rem 0.75rem 0.25rem;
+  }
+
+  .overview-caption {
+    padding: 0.75rem 1.25rem;
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    font-style: italic;
+    border-top: 1px solid var(--divider);
+    background: var(--bg-surface);
+    max-width: none;
+  }
+
+  .method-figure {
+    margin-top: 1rem;
+    background: #FAF8F4;
+    border: 1px solid var(--divider);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+  }
+
+  .method-figure img {
+    width: 100%;
+    height: auto;
+    display: block;
+    background: #FAF8F4;
+    padding-bottom: 0.5rem;
+  }
+
+  .method-figure figcaption {
+    padding: 0.75rem 1.25rem;
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    font-style: italic;
+    border-top: 1px solid var(--divider);
+    background: var(--bg-surface);
+    max-width: none;
+    margin-bottom: 0;
+  }
+
+  /* ── Results ──────────────────────────────────────────────────── */
+  .results-block {
+    margin-bottom: 3rem;
+  }
+
+  .results-block:last-child {
+    margin-bottom: 0;
+  }
+
+  .results-caption {
+    color: var(--text-muted);
+    font-style: italic;
+    margin-bottom: 1rem;
+    text-align: justify;
+    hyphens: auto;
+    max-width: none;
+  }
+
+  .chart-wrap {
+    background: var(--bg-surface);
+    border: 1px solid var(--divider);
+    border-radius: var(--radius-md);
+    padding: 1.25rem 1rem 0.75rem;
+    overflow: visible;
+  }
+
+  .chart-wide {
+    /* slightly wider for 8-bar chart */
+  }
+
+  .sim-block {
+    background: var(--bg-surface);
+    border: 1px solid var(--divider);
+    border-radius: var(--radius-md);
+    overflow: visible;
+  }
+
+  .sim-block__heatmap {
+    padding: 1.25rem 1rem 1rem;
+  }
+
+  .sim-block__videos {
+    border-top: 1px solid var(--divider);
+    padding: 0.85rem 1rem 0.75rem;
+  }
+
+  .sim-block__videos .vc {
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  .video-wrap--wide {
+    aspect-ratio: 16 / 9;
+  }
+
+  .heatmap-wrap {
+    background: var(--bg-surface);
+    border: 1px solid var(--divider);
+    border-radius: var(--radius-md);
+    padding: 1.25rem 1rem 1rem;
+    overflow: visible;
+  }
+
+  .chart-horizontal {
+    max-width: 680px;
+  }
+
+  .real-world-charts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  /* ── Per-task real-world rows ─────────────────────────────────── */
+  .task-results-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .task-result-row {
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-surface);
+    border: 1px solid var(--divider);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+  }
+
+  .task-row-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.65rem 1rem 0.6rem;
+    border-bottom: 1px solid var(--divider);
+    background: var(--bg);
+    text-align: center;
+  }
+
+  .task-row-title {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .task-row-content {
+    display: grid;
+    grid-template-columns: 1fr 200px;
+    gap: 1.25rem;
+    align-items: center;
+    padding: 0.85rem 1rem;
+  }
+
+  .task-video-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .task-video-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.2rem 0;
+  }
+
+  .task-goal {
+    font-family: var(--font-body);
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-style: italic;
+    line-height: 1.4;
+    margin-top: 0.1rem;
+  }
+
+  .task-goal strong {
+    font-style: normal;
+    color: var(--text);
+  }
+
+  .task-goal--header {
+    text-align: center;
+    margin-top: 0.15rem;
+  }
+
+  /* ── Video carousel ───────────────────────────────────────────── */
+  .vc {
+    width: 100%;
+  }
+
+  .vc-track {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    gap: 0;
+    border-radius: var(--radius-sm);
+  }
+
+  .vc-track::-webkit-scrollbar { display: none; }
+
+  .vc-slide {
+    flex: 0 0 100%;
+    scroll-snap-align: start;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .vc-caption {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-style: italic;
+    line-height: 1.4;
+    text-align: center;
+    padding: 0.35rem 0.5rem 0.1rem;
+    max-width: none;
+    margin-bottom: 0;
+  }
+
+  .vc-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    margin-top: 0.4rem;
+  }
+
+  .vc-btn {
+    background: var(--bg);
+    border: 1px solid var(--divider);
+    border-radius: 50%;
+    width: 1.6rem;
+    height: 1.6rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background var(--transition), color var(--transition), border-color var(--transition);
+    flex-shrink: 0;
+    line-height: 1;
+    padding: 0;
+  }
+
+  .vc-btn:hover {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+
+  .vc-dots {
+    display: flex;
+    gap: 0.3rem;
+    align-items: center;
+  }
+
+  .vc-dot {
+    width: 0.42rem;
+    height: 0.42rem;
+    border-radius: 50%;
+    border: none;
+    background: var(--divider);
+    cursor: pointer;
+    transition: background var(--transition), transform var(--transition);
+    padding: 0;
+  }
+
+  .vc-dot--active {
+    background: var(--accent);
+    transform: scale(1.3);
+  }
+
+  .vc-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .vc-placeholder-text {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+  }
+
+  .task-chart-col {
+    flex-shrink: 0;
+  }
+
+  /* ── Key Takeaways ────────────────────────────────────────────── */
+  .takeaways-block {
+    background: var(--bg-surface);
+    border: 1px solid var(--divider);
+    border-radius: var(--radius-md);
+    padding: 1.5rem 1.5rem 1.5rem 1.25rem;
+  }
+
+  .takeaways-block .subsection-heading {
+    margin-bottom: 1rem;
+  }
+
+  .takeaways-list {
+    padding-left: 1.25rem;
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+
+  .takeaways-list li {
+    font-family: var(--font-body);
+    font-size: 0.88rem;
+    line-height: 1.7;
+    color: var(--text);
+    margin-bottom: 0;
+    text-align: justify;
+    hyphens: auto;
+  }
+
+  .chart-label {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: 400;
+    color: var(--text-muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 0.25rem;
+    max-width: none;
+  }
+
+  .chart-label--halo {
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  /* ── Videos ───────────────────────────────────────────────────── */
+  .video-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem;
+    margin-top: 1.5rem;
+  }
+
+  .video-grid--two-col {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .video-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--divider);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    transition: border-color var(--transition);
+  }
+
+  .video-card:hover {
+    border-color: var(--text-muted);
+  }
+
+  .video-card--failure {
+    border-left: 3px solid var(--accent-warm);
+  }
+
+  .video-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #2a2220;
+    overflow: hidden;
+  }
+
+  .video-wrap video {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+  }
+
+  .video-meta {
+    padding: 0.6rem 0.85rem;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  .video-title {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .video-tag {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--accent);
+    background: rgba(139, 38, 53, 0.10);
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+    border: 1px solid rgba(139, 38, 53, 0.30);
+    border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+    border-radius: 999px;
+    padding: 0.1rem 0.5rem;
+    flex-shrink: 0;
+  }
+
+  .video-tag--failure {
+    color: var(--accent-warm);
+    background: rgba(184, 70, 27, 0.10);
+    background: color-mix(in srgb, var(--accent-warm) 10%, transparent);
+    border-color: rgba(184, 70, 27, 0.30);
+    border-color: color-mix(in srgb, var(--accent-warm) 30%, transparent);
+  }
+
+  .video-tag--fun {
+    color: #7A5C00;
+    background: rgba(200, 160, 0, 0.10);
+    border-color: rgba(200, 160, 0, 0.35);
+    border-radius: 999px;
+    padding: 0.1rem 0.5rem;
+  }
+
+  .failure-groups {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .failure-group-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding: 0.6rem 0.85rem 0.5rem;
+    border-bottom: 1px solid var(--divider);
+  }
+
+  .failure-fun {
+    max-width: 400px;
+    margin: 0 auto;
+  }
+
+  .failure-fun .vc-caption {
+    padding-bottom: 0.5rem;
+  }
+
+  /* ── BibTeX ───────────────────────────────────────────────────── */
+  .bibtex-block {
+    background: var(--bg-surface);
+    border: 1px solid var(--divider);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    margin-top: 1rem;
+  }
+
+  .bibtex-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid var(--divider);
+    background: #e5ddd0;
+    background: color-mix(in srgb, var(--divider) 40%, var(--bg-surface));
+  }
+
+  .bibtex-label {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: 400;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .copy-btn {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--accent);
+    background: transparent;
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-sm);
+    padding: 0.2rem 0.6rem;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    transition: background var(--transition), color var(--transition);
+  }
+
+  .copy-btn:hover {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .bibtex-pre {
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    padding: 1.25rem 1.5rem;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    line-height: 1.65;
+    background: var(--bg-surface);
+    color: var(--text);
+    white-space: pre;
+    overflow-x: auto;
+  }
+
+  /* ── Responsive ───────────────────────────────────────────────── */
+  @media (max-width: 700px) {
+    .method-overview-block {
+      grid-template-columns: 1fr;
+    }
+
+    .method-components {
+      grid-template-columns: 1fr;
+    }
+
+    .real-world-charts {
+      grid-template-columns: 1fr;
+    }
+
+    .task-row-content {
+      grid-template-columns: 1fr;
+    }
+
+    .video-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .video-grid--two-col {
+      grid-template-columns: 1fr;
+    }
+
+    .failure-groups {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .hero {
+      padding-block: 3rem 2.5rem;
+    }
+
+    .video-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .chart-horizontal {
+      max-width: 100%;
+    }
+  }
+</style>

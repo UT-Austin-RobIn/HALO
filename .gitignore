@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+.output/
+
+# Astro cache
+.astro/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*

@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" role="img" aria-label="Video Placeholder">
+  <!-- Background -->
+  <rect width="1600" height="900" fill="#1B1614"/>
+
+  <!-- Subtle inner vignette -->
+  <radialGradient id="vignette" cx="50%" cy="50%" r="70%">
+    <stop offset="0%" stop-color="#2A2220" stop-opacity="0"/>
+    <stop offset="100%" stop-color="#0D0B0A" stop-opacity="0.7"/>
+  </radialGradient>
+  <rect width="1600" height="900" fill="url(#vignette)"/>
+
+  <!-- Film strip — left edge -->
+  <rect x="32" y="0" width="72" height="900" fill="#2A2220"/>
+  <!-- Film perforations left -->
+  <rect x="44" y="24"  width="48" height="36" rx="4" fill="#1B1614"/>
+  <rect x="44" y="80"  width="48" height="36" rx="4" fill="#1B1614"/>
+  <rect x="44" y="136" width="48" height="36" rx="4" fill="#1B1614"/>
+  <rect x="44" y="192" width="48" height="36" rx="4" fill="#1B1614"/>
+  <rect x="44" y="248" width="48" height="36" rx="4" fill="#1B1614"/>
+  <rect x="44" y="304" width="48" height="36" rx="4" fill="#1B1614"/>
+  <rect x="44" y="360" width="48" height="36" rx="4" fill="#1B1614"/>
+  <rect x="44" y="416" width="48" height="36" rx="4" fill="#1B1614"/>
+  <rect x="44" y="472" width="48" height="36" rx="4" fill="#1B1614"/>
+  <rect x="44" y="528" width="48" height="36" rx="4" fill="#1B1614"/>
+  <rect x="44" y="584" width="48" height="36" rx="4" fill="#1B1614"/>
+  <rect x="44" y="640" width="48" height="36" rx="4" fill="#1B1614"/>
+  <rect x="44" y="696" width="48" height="36" rx="4" fill="#1B1614"/>
+  <rect x="44" y="752" width="48" height="36" rx="4" fill="#1B1614"/>
+  <rect x="44" y="808" width="48" height="36" rx="4" fill="#1B1614"/>
+  <rect x="44" y="864" width="48" height="36" rx="4" fill="#1B1614"/>
+
+  <!-- Film strip — right edge -->
+  <rect x="1496" y="0" width="72" height="900" fill="#2A2220"/>
+  <!-- Film perforations right -->
+  <rect x="1508" y="24"  width="48" height="36" rx="4" fill="#1B1614"/>
+  <rect x="1508" y="80"  width="48" height="36" rx="4" fill="#1B1614"/>
+  <rect x="1508" y="136" width="48" height="36" rx="4" fill="#1B1614"/>
+  <rect x="1508" y="192" width="48" height="36" rx="4" fill="#1B1614"/>
+  <rect x="1508" y="248" width="48" height="36" rx="4" fill="#1B1614"/>
+  <rect x="1508" y="304" width="48" height="36" rx="4" fill="#1B1614"/>
+  <rect x="1508" y="360" width="48" height="36" rx="4" fill="#1B1614"/>
+  <rect x="1508" y="416" width="48" height="36" rx="4" fill="#1B1614"/>
+  <rect x="1508" y="472" width="48" height="36" rx="4" fill="#1B1614"/>
+  <rect x="1508" y="528" width="48" height="36" rx="4" fill="#1B1614"/>
+  <rect x="1508" y="584" width="48" height="36" rx="4" fill="#1B1614"/>
+  <rect x="1508" y="640" width="48" height="36" rx="4" fill="#1B1614"/>
+  <rect x="1508" y="696" width="48" height="36" rx="4" fill="#1B1614"/>
+  <rect x="1508" y="752" width="48" height="36" rx="4" fill="#1B1614"/>
+  <rect x="1508" y="808" width="48" height="36" rx="4" fill="#1B1614"/>
+  <rect x="1508" y="864" width="48" height="36" rx="4" fill="#1B1614"/>
+
+  <!-- Accent rule — top -->
+  <rect x="104" y="56" width="1392" height="2" fill="#8B2635" opacity="0.6"/>
+  <!-- Accent rule — bottom -->
+  <rect x="104" y="842" width="1392" height="2" fill="#8B2635" opacity="0.6"/>
+
+  <!-- Play button circle -->
+  <circle cx="800" cy="420" r="80" fill="none" stroke="#D8CEBF" stroke-width="3" opacity="0.6"/>
+
+  <!-- Play triangle -->
+  <polygon points="780,390 780,450 840,420" fill="#D8CEBF" opacity="0.7"/>
+
+  <!-- Label -->
+  <text
+    x="800"
+    y="556"
+    text-anchor="middle"
+    font-family="'IBM Plex Mono', 'Courier New', monospace"
+    font-size="22"
+    letter-spacing="4"
+    fill="#D8CEBF"
+    opacity="0.55"
+    font-weight="400"
+  >VIDEO PLACEHOLDER</text>
+</svg>
