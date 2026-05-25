@@ -10,9 +10,9 @@ interface Props {
   height?: number;
 }
 
-const { rows, cols, data, separatorAfterRow, width = 740, height = 340 } = Astro.props;
+const { rows, cols, data, separatorAfterRow, width = 900, height = 390 } = Astro.props;
 
-const LABEL_W = 178, PAD_R = 12, PAD_T = 58, PAD_B = 22;
+const LABEL_W = 198, PAD_R = 40, PAD_T = 72, PAD_B = 36;
 const plotW = width - LABEL_W - PAD_R;
 const plotH = height - PAD_T - PAD_B;
 const cellW = plotW / cols.length;
@@ -43,21 +43,37 @@ function cellFg(v: number): string { return v > 42 ? '#ffffff' : '#1B1614'; }
 
 const haloIndex = rows.findIndex(r => r.highlight);
 
-const colHeaders = cols.map((col, ci) => ({
-  label: col.label, sublabel: col.sublabel, isAccent: col.isAccent ?? false,
-  cx: LABEL_W + ci * cellW + cellW / 2,
-  labelY: PAD_T - (col.sublabel ? 20 : 8),
-  sublabelY: PAD_T - 6,
-}));
+function splitLabel(label: string): string[] {
+  const words = label.split(' ');
+  if (words.length <= 1) return [label];
+  const mid = Math.ceil(words.length / 2);
+  return [words.slice(0, mid).join(' '), words.slice(mid).join(' ')];
+}
+
+const colHeaders = cols.map((col, ci) => {
+  const labelLines = splitLabel(col.label);
+  const multiLine = labelLines.length > 1;
+  const lineH = 16;
+  const sublabelY = PAD_T - 6;
+  const labelY = col.sublabel
+    ? (multiLine ? PAD_T - 38 : PAD_T - 20)
+    : (multiLine ? PAD_T - 24 : PAD_T - 8);
+  return {
+    label: col.label, labelLines, sublabel: col.sublabel,
+    isAccent: col.isAccent ?? false,
+    cx: LABEL_W + ci * cellW + cellW / 2,
+    labelY, lineH, sublabelY,
+  };
+});
 
 const rowCells = rows.map((_, ri) =>
   cols.map((_, ci) => {
     const v = data[ri][ci];
     return {
       v, bg: cellBg(v), fg: cellFg(v),
-      rx: LABEL_W + ci * cellW + 2,
+      rx: LABEL_W + ci * cellW + 5,
       ry: PAD_T + ri * cellH + 2,
-      rw: cellW - 4, rh: cellH - 4,
+      rw: cellW - 10, rh: cellH - 4,
       tcx: LABEL_W + ci * cellW + cellW / 2,
       tcy: PAD_T + ri * cellH + cellH / 2 + 3.5,
     };
@@ -98,14 +114,18 @@ const legendRects = Array.from({ length: LEGEND_N }, (_, i) => ({
 
     {colHeaders.map((ch) => (
       <g>
-        <text x={ch.cx} y={ch.labelY} text-anchor="middle"
+        <text x={ch.cx} text-anchor="middle"
           font-family="'Libre Baskerville',Georgia,serif"
-          font-size="9.5" font-weight={ch.isAccent ? 'bold' : '400'}
-          fill={ch.isAccent ? '#8B2635' : '#1B1614'}>{ch.label}</text>
+          font-size="13" font-weight={ch.isAccent ? 'bold' : '400'}
+          fill={ch.isAccent ? '#8B2635' : '#1B1614'}>
+          {ch.labelLines.map((line, li) => (
+            <tspan x={ch.cx} dy={li === 0 ? `${ch.labelY}` : `${ch.lineH}`}>{line}</tspan>
+          ))}
+        </text>
         {ch.sublabel && (
           <text x={ch.cx} y={ch.sublabelY} text-anchor="middle"
             font-family="'IBM Plex Mono',monospace"
-            font-size="8" font-style="italic" fill="#6B5F5A">{ch.sublabel}</text>
+            font-size="11" font-style="italic" fill="#6B5F5A">{ch.sublabel}</text>
         )}
       </g>
     ))}
@@ -116,7 +136,7 @@ const legendRects = Array.from({ length: LEGEND_N }, (_, i) => ({
           <g>
             <rect x={c.rx} y={c.ry} width={c.rw} height={c.rh} fill={c.bg} rx="2" />
             <text x={c.tcx} y={c.tcy} text-anchor="middle"
-              font-family="'IBM Plex Mono',monospace" font-size="9" fill={c.fg}>{c.v}%</text>
+              font-family="'IBM Plex Mono',monospace" font-size="11" fill={c.fg}>{c.v}%</text>
           </g>
         ))}
         <rect class="hm-hit" x={0} y={PAD_T + ri * cellH}
@@ -129,7 +149,7 @@ const legendRects = Array.from({ length: LEGEND_N }, (_, i) => ({
     {rowLabels.map((rl) => (
       <text class="hm-rl" data-row={rl.ri} x={rl.x} y={rl.y} text-anchor="end"
         font-family="'Libre Baskerville',Georgia,serif"
-        font-size={rl.highlight ? '10' : '9.5'}
+        font-size={rl.highlight ? '14' : '13'}
         font-weight={rl.highlight ? '700' : '400'}
         fill={rl.highlight ? '#8B2635' : '#1B1614'}
         style="cursor:pointer;">{rl.label}</text>
@@ -147,14 +167,14 @@ const legendRects = Array.from({ length: LEGEND_N }, (_, i) => ({
 
     <g>
       {legendRects.map((lr) => (
-        <rect x={lr.x} y={legY} width={legRW} height="6" fill={lr.fill} />
+        <rect x={lr.x} y={legY} width={legRW} height="12" fill={lr.fill} />
       ))}
-      <text x={legX0} y={legY + 13} text-anchor="start"
-        font-family="'IBM Plex Mono',monospace" font-size="7" fill="#6B5F5A">0%</text>
-      <text x={legX0 + legW / 2} y={legY + 13} text-anchor="middle"
-        font-family="'IBM Plex Mono',monospace" font-size="7" fill="#6B5F5A">success rate</text>
-      <text x={legX0 + legW} y={legY + 13} text-anchor="end"
-        font-family="'IBM Plex Mono',monospace" font-size="7" fill="#6B5F5A">100%</text>
+      <text x={legX0} y={legY + 22} text-anchor="start"
+        font-family="'IBM Plex Mono',monospace" font-size="12" fill="#6B5F5A">0%</text>
+      <text x={legX0 + legW / 2} y={legY + 22} text-anchor="middle"
+        font-family="'IBM Plex Mono',monospace" font-size="12" fill="#6B5F5A">success rate</text>
+      <text x={legX0 + legW} y={legY + 22} text-anchor="end"
+        font-family="'IBM Plex Mono',monospace" font-size="12" fill="#6B5F5A">100%</text>
     </g>
   </svg>
 </div>

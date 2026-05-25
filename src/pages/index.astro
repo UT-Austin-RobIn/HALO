@@ -93,7 +93,7 @@ const realWorldTasks = [
       { src: 'heatpot-wait-for-8-minutes-4x.mp4',    caption: 'HALO turns off the stove after 8 minutes' },
     ]
   },
-  { name: 'Store N Objects (Human-Robot Collaboration)', tag: 'Numerical Info. + Human-Robot Collab.', std: 50, halo: 65,
+  { name: 'Store N Objects', tag: 'Numerical Info. + Human-Robot Collab.', std: 50, halo: 65,
     goal: 'Place 3 purple cups and 1 green cup into the bag. The human places k purple cups first; the robot must complete the rest.',
     videos: [
       { src: 'store-3-human-1-robot-2-4x.mp4',   caption: 'Human places 1 cup; HALO places the remaining 2' },
@@ -238,12 +238,14 @@ const bibtex = `@inproceedings{shah2026halo,
       <h2 class="section-heading">Abstract</h2>
 
       <p class="body-text abstract-short">
-        HALO is a visuomotor policy for long-horizon robot control that retrieves information from
-        up to eight minutes of past interaction relevant to predicting the current action.
-        Long-context policies trained via imitation learning struggle with spurious correlations
+        HALO is a visuomotor policy for long-horizon robot control that learns to retrieve information
+        from its past interaction (including past image observations, proprioceptives, and actions)
+        for predicting the current action.
+        These past interactions are stored in the long context of a transformer-based policy.
+        However, long-context policies trained by imitation learning struggle with spurious correlations
         from history and compounding prediction errors. HALO addresses these challenges by
-        distilling VLM priors through video question-answering supervision and applying Top-K
-        sparse attention. Notably, HALO outperforms both text-based memory summarization and
+        distilling VLM priors through video question-answering supervision, reducing spurious correlations,
+        and applying Top-K sparse attention to reduce the impact of accumulated errors in the context. Notably, HALO outperforms both text-based memory summarization and
         hand-engineered feature stores, as retaining raw observations and actions lets the policy exploit
         fine-grained details that VLMs discard during summarization and that human designers
         overlook when hand-crafting features.
@@ -300,7 +302,8 @@ const bibtex = `@inproceedings{shah2026halo,
       <p class="body-text">
         Long-horizon manipulation requires reasoning over context that is no longer visible: where an object
         was placed, how many items were stored, or when a stove was activated. We study tasks spanning up to
-        eight minutes, where the policy must retrieve from its history of past observations and actions.
+        eight minutes, where the policy must retrieve from its history of past observations and actions to correctly make decisions.
+        Below, we provide a motivating example of such long-horizon tasks in mobile manipulation.
       </p>
 
       <figure class="overview-figure">
@@ -309,11 +312,11 @@ const bibtex = `@inproceedings{shah2026halo,
           alt="Overview of the long-horizon robot control problem: the robot must retrieve task-relevant information from a long history of past observations"
           loading="eager"
         />
-        <figcaption class="overview-caption">
+        {/* <figcaption class="overview-caption">
           <strong>Figure 1.</strong> HALO operates over long episodes where key context is not visible
           in the current frame. The policy retrieves task-relevant frames from up to eight minutes of
           history, recovering spatial, relational, numerical, and event-timing information to inform the current action.
-        </figcaption>
+        </figcaption> */}
       </figure>
     </div>
   </section>
@@ -334,17 +337,6 @@ const bibtex = `@inproceedings{shah2026halo,
         closed-loop execution. HALO addresses both with the two components below.
       </p>
 
-      <figure class="method-figure">
-        <img
-          src={`${base}/method-overview.svg`}
-          alt="HALO method overview: VQA-based VLM prior distillation and Top-K sparse attention"
-        />
-        <figcaption>
-          HALO overview. VLM-generated question–answer pairs supervise attention toward task-relevant history frames (left).
-          Top-K sparse attention restricts retrieval to the most relevant context, reducing error propagation during closed-loop control (right).
-        </figcaption>
-      </figure>
-
       <div class="method-components">
 
         <!-- ── VQA Component ─────────────────────────────────── -->
@@ -360,26 +352,48 @@ const bibtex = `@inproceedings{shah2026halo,
             <div class="pseudo-col">
               <p class="pseudo-header">VQA Generation</p>
               <div class="pipeline-flow">
-                <div class="pipeline-step">
-                  <span class="step-label">Input</span>
+
+                <div class="pipeline-data">
+                  <span class="data-label">Input</span>
                   trajectory, task instruction
                 </div>
                 <div class="pipeline-arrow">&#8595;</div>
+
                 <div class="pipeline-step">
                   <span class="step-label">Summarize</span>
-                  object detector + VLM &rarr; text description of scene &amp; activities
+                  object detector + VLM
                 </div>
                 <div class="pipeline-arrow">&#8595;</div>
+
+                <div class="pipeline-data">
+                  <span class="data-label">Output</span>
+                  text description of scene &amp; activities
+                </div>
+                <div class="pipeline-arrow">&#8595;</div>
+
                 <div class="pipeline-step">
                   <span class="step-label">Generate</span>
-                  sample a frame, LLM generates a question + answer
+                  sample a frame number, LLM generates Q&amp;A
+                </div>
+                <div class="pipeline-arrow">&#8595;</div>
+
+                <div class="pipeline-data">
+                  <span class="data-label">Output</span>
                   <div class="pipeline-example">Q: "Where was the granola bar at t=8?"<br/>A: "Right side of the countertop"</div>
                 </div>
                 <div class="pipeline-arrow">&#8595;</div>
+
                 <div class="pipeline-step">
                   <span class="step-label">Filter</span>
-                  score relevance + correctness &rarr; add to dataset
+                  score relevance + correctness
                 </div>
+                <div class="pipeline-arrow">&#8595;</div>
+
+                <div class="pipeline-data">
+                  <span class="data-label">Output</span>
+                  curated Q&amp;A dataset
+                </div>
+
               </div>
             </div>
 
@@ -447,6 +461,18 @@ context = attn @ val[top_idx]</pre>
         </div>
 
       </div>
+
+      <figure class="method-figure">
+        <img
+          src={`${base}/method-overview.svg`}
+          alt="HALO method overview: VQA-based VLM prior distillation and Top-K sparse attention"
+        />
+        <figcaption>
+          HALO overview. VLM-generated question–answer pairs supervise attention toward task-relevant history frames (L).
+          Top-K sparse attention restricts retrieval to the most relevant context, reducing error propagation during closed-loop control (R).
+        </figcaption>
+      </figure>
+
     </div>
   </section>
 
@@ -460,7 +486,7 @@ context = attn @ val[top_idx]</pre>
       <h2 class="section-heading">Results</h2>
 
       <!-- Real-World Experiments -->
-      <div class="results-block">
+      <div class="results-block" id="real-world">
         <h3 class="subsection-heading">Real-World Experiments</h3>
         <p class="body-text results-caption">
           Robot rollouts on a physical robot across five tasks (20 rollouts per task). HALO improves on every task, reaching <strong>55%</strong> average success versus 36% for the Standard Transformer baseline.
@@ -469,8 +495,10 @@ context = attn @ val[top_idx]</pre>
           {realWorldTasks.map((task) => (
             <div class="task-result-row">
               <div class="task-row-header">
-                <span class="task-row-title">{task.name}</span>
-                <span class="video-tag">{task.tag}</span>
+                <div class="task-row-title-wrap">
+                  <span class="video-tag">{task.tag}</span>
+                  <span class="task-row-title">{task.name}</span>
+                </div>
                 <span class="task-goal task-goal--header"><strong>Goal:</strong> {task.goal}</span>
               </div>
               <div class="task-row-content">
@@ -517,7 +545,7 @@ context = attn @ val[top_idx]</pre>
                   ]}
                   maxValue={100}
                   width={200}
-                  height={280}
+                  height={350}
                 />
               </div>
               </div>
@@ -527,7 +555,7 @@ context = attn @ val[top_idx]</pre>
       </div>
 
       <!-- Simulation Benchmark -->
-      <div class="results-block">
+      <div class="results-block" id="simulation">
         <h3 class="subsection-heading">Simulation Benchmark</h3>
         <p class="body-text results-caption">
           Average task success rate across four simulation tasks (50 rollouts each).
@@ -577,7 +605,7 @@ context = attn @ val[top_idx]</pre>
       <div class="results-block takeaways-block">
         <h3 class="subsection-heading">Key Takeaways</h3>
         <ul class="takeaways-list">
-          <li><strong>Text summaries lose granular detail.</strong> ReMemBer (−23&nbsp;pts) stores VLM text descriptions of observations, but these discard fine-grained details such as precise event timing and low-level action information to retrace the path where the object was found, which are critical for low-level control.</li>
+          <li><strong>Text summaries lose granular detail.</strong> ReMemBer (−23&nbsp;pts) stores VLM text descriptions of observations, but these discard fine-grained details such as precise event timing and low-level action information to retrace the path where the object was found, which may be critical for low-level control.</li>
           <li><strong>Learning retrieval beats engineering it.</strong> Hand-Designed Features achieves competitive spatial performance, showing that spatial cues are well-captured even without learning, yet HALO matches this without any manually designed rules. Surprisingly, HALO outperforms hand-designed features overall, as the policy can exploit additional information missed by human designers, such as neighboring visual frames that provide implicit cues about the environment.</li>
           <li><strong>Selective retrieval outperforms compression.</strong> Token Merging and Scene Memory Transformer compress history, discarding fine-grained detail. HALO retains the full context and retrieves selectively, providing flexibility to recollect any information but reducing the impact of noise at the same time.</li>
           <li><strong>No single method wins every task; HALO wins overall.</strong> Each baseline excels in its specialty (Hand-Designed on spatial, SAM2Act++ on counting) but fails elsewhere. HALO's 41% average comes from competitive performance across all four memory types.</li>
@@ -639,7 +667,7 @@ context = attn @ val[top_idx]</pre>
         ))}
       </div>
 
-      <div class="failure-fun video-card">
+      {/* <div class="failure-fun video-card">
         <div class="failure-group-header">
           <span class="video-title">Sometimes the Stove Just Breaks</span>
           <span class="video-tag video-tag--fun">Not our fault</span>
@@ -651,7 +679,7 @@ context = attn @ val[top_idx]</pre>
           </video>
         </div>
         <p class="vc-caption">{funFailure.caption}</p>
-      </div>
+      </div> */}
     </div>
   </section>
 
@@ -1042,11 +1070,38 @@ context = attn @ val[top_idx]</pre>
     gap: 0;
   }
 
+  .pipeline-data {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    background: var(--bg-alt);
+    border: 1px dashed var(--divider);
+    border-radius: var(--radius-sm);
+    padding: 0.35rem 0.7rem;
+    font-family: var(--font-body);
+    font-size: 0.77rem;
+    line-height: 1.4;
+    color: var(--text-muted);
+  }
+
+  .data-label {
+    flex-shrink: 0;
+    min-width: 5.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
   .pipeline-step {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
     background: var(--bg);
     border: 1px solid var(--divider);
     border-radius: var(--radius-sm);
-    padding: 0.45rem 0.7rem;
+    padding: 0.35rem 0.7rem;
     font-family: var(--font-body);
     font-size: 0.77rem;
     line-height: 1.4;
@@ -1054,13 +1109,13 @@ context = attn @ val[top_idx]</pre>
   }
 
   .step-label {
-    display: block;
+    flex-shrink: 0;
+    min-width: 5.5rem;
     font-family: var(--font-mono);
     font-size: 0.62rem;
     letter-spacing: 0.09em;
     text-transform: uppercase;
     color: var(--accent);
-    margin-bottom: 0.12rem;
   }
 
   .pipeline-arrow {
@@ -1238,6 +1293,19 @@ context = attn @ val[top_idx]</pre>
     border-bottom: 1px solid var(--divider);
     background: var(--bg);
     text-align: center;
+  }
+
+  .task-row-title-wrap {
+    position: relative;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .task-row-title-wrap .video-tag {
+    position: absolute;
+    left: 0;
   }
 
   .task-row-title {

@@ -73,19 +73,137 @@ const ogImage = new URL(`${base}/og-image.png`, Astro.site);
   </head>
 
   <body>
+    <!-- ── Sticky navigation ─────────────────────────────────── -->
+    <nav class="site-nav" id="site-nav" aria-label="Page sections">
+      <div class="container nav-inner">
+        <span class="nav-brand">HALO</span>
+        <div class="nav-links">
+          <a href="#abstract"   class="nav-link">Abstract</a>
+          <a href="#overview"   class="nav-link">Overview</a>
+          <a href="#method"     class="nav-link">Method</a>
+          <a href="#real-world" class="nav-link">Real-World</a>
+          <a href="#simulation" class="nav-link">Simulation</a>
+          <a href="#failures"   class="nav-link">Failures</a>
+          <a href="#citation"   class="nav-link">BibTeX</a>
+        </div>
+      </div>
+    </nav>
+
     <!-- Page content injected here -->
     <slot />
 
     <!-- ── Footer ────────────────────────────────────────── -->
     <footer>
       <div class="container">
-        <p>ROBIN Lab &middot; The University of Texas at Austin &middot; RSS 2026</p>
+        <p>The University of Texas at Austin &middot; RSS 2026</p>
       </div>
     </footer>
   </body>
 </html>
 
+<script>
+(function () {
+  const nav = document.getElementById('site-nav');
+  if (!nav) return;
+  const links = nav.querySelectorAll('.nav-link');
+
+  const ids = ['abstract', 'overview', 'method', 'real-world', 'simulation', 'failures', 'citation'];
+
+  const observer = new IntersectionObserver(
+    function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          const id = entry.target.id;
+          links.forEach(function (l) {
+            l.classList.toggle('active', l.getAttribute('href') === '#' + id);
+          });
+        }
+      });
+    },
+    { rootMargin: '-10% 0px -80% 0px', threshold: 0 }
+  );
+
+  ids.forEach(function (id) {
+    const el = document.getElementById(id);
+    if (el) observer.observe(el);
+  });
+})();
+</script>
+
 <style>
+  /* ── Sticky nav ─────────────────────────────────────────── */
+  .site-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: color-mix(in srgb, var(--bg) 90%, transparent);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--divider);
+  }
+
+  .nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-block: 0.55rem;
+  }
+
+  .nav-brand {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    flex-shrink: 0;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 0.1rem;
+    align-items: center;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .nav-links::-webkit-scrollbar { display: none; }
+
+  .nav-link {
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 0.25rem 0.55rem;
+    border-radius: var(--radius-sm);
+    transition: color var(--transition), background var(--transition);
+    white-space: nowrap;
+    letter-spacing: 0.01em;
+  }
+
+  .nav-link:hover {
+    color: var(--text);
+    background: var(--bg-alt, color-mix(in srgb, var(--divider) 30%, var(--bg)));
+    text-decoration: none;
+  }
+
+  .nav-link.active {
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  /* push page content below fixed nav */
+  :global(body) {
+    padding-top: 46px;
+  }
+
+  /* prevent headings from hiding under the nav on anchor jump */
+  :global(section[id], div[id]) {
+    scroll-margin-top: 58px;
+  }
+
   footer {
     padding-block: 2rem;
     border-top: 1px solid var(--divider);

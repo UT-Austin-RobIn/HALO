@@ -40,7 +40,7 @@ const TITLE_PAD = title ? 10 : 0;   // gap below title
 
 // ── Vertical-bar layout ──────────────────────────────────────────────
 const V_MARGIN_TOP    = TITLE_H + TITLE_PAD + 24;  // room for value labels
-const V_MARGIN_BOTTOM = 56;   // room for x-axis labels (two lines if needed)
+const V_MARGIN_BOTTOM = 72;   // room for x-axis labels (two lines if needed)
 const V_MARGIN_LEFT   = 36;
 const V_MARGIN_RIGHT  = 12;
 
@@ -154,7 +154,7 @@ const hBars: HBar[] = data.map((d, i) => {
       y={TITLE_H - 4}
       text-anchor="middle"
       font-family="'Cormorant Garamond', Georgia, serif"
-      font-size="15"
+      font-size="22"
       font-weight="600"
       fill="#1B1614"
     >{title}</text>
@@ -174,7 +174,7 @@ const hBars: HBar[] = data.map((d, i) => {
             x={V_MARGIN_LEFT - 4} y={y + 4}
             text-anchor="end"
             font-family="'IBM Plex Mono', monospace"
-            font-size="9"
+            font-size="13"
             fill="#6B5F5A"
           >{yVal}</text>
         </g>
@@ -206,7 +206,7 @@ const hBars: HBar[] = data.map((d, i) => {
             x={b.x + vBarW / 2} y={b.valueLabelY}
             text-anchor="middle"
             font-family="'IBM Plex Mono', monospace"
-            font-size="9"
+            font-size="13"
             font-weight="400"
             fill={b.color}
           >{b.valueLabel}</text>
@@ -214,10 +214,10 @@ const hBars: HBar[] = data.map((d, i) => {
           {b.labelParts.map((part, li) => (
             <text
               x={b.x + vBarW / 2}
-              y={V_MARGIN_TOP + vPlotH + 12 + li * 11}
+              y={V_MARGIN_TOP + vPlotH + 16 + li * 15}
               text-anchor="middle"
               font-family="'Libre Baskerville', Georgia, serif"
-              font-size="8.5"
+              font-size="13"
               fill="#1B1614"
             >{part}</text>
           ))}
@@ -271,7 +271,7 @@ const hBars: HBar[] = data.map((d, i) => {
           <text
             x={b.valueLabelX} y={b.y + hBarH / 2 + 4}
             font-family="'IBM Plex Mono', monospace"
-            font-size="9"
+            font-size="13"
             fill={b.color}
           >{b.valueLabel}</text>
           <!-- Y-axis label (left side) -->
@@ -280,7 +280,7 @@ const hBars: HBar[] = data.map((d, i) => {
             y={b.y + hBarH / 2 + 4}
             text-anchor="end"
             font-family="'Libre Baskerville', Georgia, serif"
-            font-size="9"
+            font-size="13"
             fill="#1B1614"
           >{b.label}</text>
         </g>
