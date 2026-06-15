@@ -116,6 +116,25 @@ const realWorldTasks = [
   },
 ];
 
+// ── Hero showcase videos (real-world successes only) ─────────────────
+const heroFeatured = [
+  { src: 'popcorn-real.mp4',  task: 'Cooking Popcorn',   tag: 'Numerical + Event-Time Info.', caption: 'HALO adds the right number of scoops, then turns off the stove 4.5 minutes after switching it on' },
+  { src: 'spaghetti-4x.mp4',  task: 'Boiling Spaghetti',  tag: 'Event-Time Info.', caption: 'HALO boils the spaghetti for 8 minutes before turning off the stove' },
+  { src: 'bread-4x.mp4',      task: 'Toasting Bread',     tag: 'Event-Time Info.', caption: 'HALO toasts the bread for 2 minutes before turning off the stove' },
+];
+
+const heroVideos = [
+  ...heroFeatured,
+  ...realWorldTasks.flatMap((task) =>
+    task.videos.map((v) => ({
+      src: v.src,
+      caption: v.caption,
+      task: task.name,
+      tag: task.tag,
+    }))
+  ),
+];
+
 // ── Simulation rollout videos ────────────────────────────────────────
 const simVideos = [
   { src: 'retrieve_oil-sim.mp4',    caption: 'Retrieve Object: oil bottle retrieved from its last seen location' },
@@ -222,11 +241,46 @@ const bibtex = `@inproceedings{shah2026halo,
       </p>
 
       <div class="links-row">
-        <a class="link-pill" href="#">Code</a>
+        <a class="link-pill" href="https://github.com/UT-Austin-RobIn/HALO" target="_blank" rel="noopener">Code</a>
       </div>
-      <p class="coming-soon"><em>Coming soon</em></p>
     </div>
   </header>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       HERO VIDEO SHOWCASE (real-world successes)
+  ═══════════════════════════════════════════════════════════════ -->
+  <section class="hero-videos">
+    <div class="container">
+      <div class="vc vc--hero">
+        <div class="vc-track">
+          {heroVideos.map((v) => (
+            <div class="vc-slide">
+              <div class="video-wrap video-wrap--hero">
+                <video poster={`${base}/placeholder-video.svg`} autoplay muted loop playsinline controls>
+                  <source src={`${base}/videos/${v.src}`} type="video/mp4" />
+                  Your browser does not support the video element.
+                </video>
+              </div>
+              <p class="vc-caption vc-caption--hero">
+                <span class="video-tag">{v.tag}</span>
+                <span class="hero-video-task">{v.task}:</span>
+                {v.caption}
+              </p>
+            </div>
+          ))}
+        </div>
+        <div class="vc-controls">
+          <button class="vc-btn vc-prev" aria-label="Previous video">&#8592;</button>
+          <div class="vc-dots">
+            {heroVideos.map((_, vi) => (
+              <button class={`vc-dot${vi === 0 ? ' vc-dot--active' : ''}`} aria-label={`Video ${vi + 1}`}></button>
+            ))}
+          </div>
+          <button class="vc-btn vc-next" aria-label="Next video">&#8594;</button>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <hr class="section-divider" />
 
@@ -720,12 +774,23 @@ context = attn @ val[top_idx]</pre>
 
     let current = 0;
 
+    // Mute every slide's video except the one at `idx`, so audio never
+    // continues playing from a slide the viewer has navigated away from.
+    function muteAllExcept(idx) {
+      slides.forEach(function (slide, i) {
+        slide.querySelectorAll('video').forEach(function (v) {
+          if (i !== idx) v.muted = true;
+        });
+      });
+    }
+
     function goTo(idx) {
       current = ((idx % slides.length) + slides.length) % slides.length;
       track.scrollTo({ left: current * track.clientWidth, behavior: 'smooth' });
       dots.forEach(function (d, i) {
         d.classList.toggle('vc-dot--active', i === current);
       });
+      muteAllExcept(current);
     }
 
     const prevBtn = vc.querySelector('.vc-prev');
@@ -739,9 +804,21 @@ context = attn @ val[top_idx]</pre>
       if (idx !== current) {
         current = idx;
         dots.forEach(function (d, i) { d.classList.toggle('vc-dot--active', i === current); });
+        muteAllExcept(current);
       }
     });
   });
+
+  // Mute any video once it scrolls out of view, so unmuted audio doesn't
+  // keep playing off-screen as the page scrolls.
+  if ('IntersectionObserver' in window) {
+    const obs = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) entry.target.muted = true;
+      });
+    }, { threshold: 0.5 });
+    document.querySelectorAll('video').forEach(function (v) { obs.observe(v); });
+  }
 })();
 </script>
 
@@ -887,6 +964,40 @@ context = attn @ val[top_idx]</pre>
     color: var(--text-muted);
     margin-top: 0.4rem;
     margin-bottom: 0;
+  }
+
+  /* ── Hero video showcase ──────────────────────────────────────── */
+  .hero-videos {
+    padding-block: 0 1rem;
+  }
+
+  .vc--hero {
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .video-wrap--hero {
+    aspect-ratio: 16 / 9;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--divider);
+    background: #2a2220;
+  }
+
+  .vc-caption--hero {
+    font-size: var(--text-sm);
+    font-style: normal;
+    padding-top: 0.6rem;
+    line-height: 1.5;
+  }
+
+  .hero-video-task {
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .vc-caption--hero .video-tag {
+    margin-right: 0.4rem;
+    vertical-align: middle;
   }
 
   /* ── Section headings ─────────────────────────────────────────── */
