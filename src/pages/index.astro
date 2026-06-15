@@ -123,17 +123,33 @@ const heroFeatured = [
   { src: 'bread-4x.mp4',      task: 'Toasting Bread',     tag: 'Event-Time Info.', caption: 'HALO toasts the bread for 2 minutes before turning off the stove' },
 ];
 
-const heroVideos = [
-  ...heroFeatured,
-  ...realWorldTasks.flatMap((task) =>
-    task.videos.map((v) => ({
-      src: v.src,
-      caption: v.caption,
-      task: task.name,
-      tag: task.tag,
-    }))
-  ),
+// Flatten a task's videos into hero-video objects.
+const toHeroVideos = (task) =>
+  task.videos.map((v) => ({ src: v.src, caption: v.caption, task: task.name, tag: task.tag }));
+
+// The Retrieve Object (granola) videos go in the middle; the remaining
+// tasks are interleaved round-robin so consecutive clips vary by task type.
+const retrieveTask = realWorldTasks.find((t) => t.name === 'Retrieve Object');
+const otherTasks = realWorldTasks.filter((t) => t.name !== 'Retrieve Object');
+
+const otherLists = otherTasks.map(toHeroVideos);
+const interleaved = [];
+const maxLen = Math.max(0, ...otherLists.map((l) => l.length));
+for (let i = 0; i < maxLen; i++) {
+  for (const list of otherLists) {
+    if (i < list.length) interleaved.push(list[i]);
+  }
+}
+
+const granolaVideos = retrieveTask ? toHeroVideos(retrieveTask) : [];
+const mid = Math.floor(interleaved.length / 2);
+const shuffledRest = [
+  ...interleaved.slice(0, mid),
+  ...granolaVideos,
+  ...interleaved.slice(mid),
 ];
+
+const heroVideos = [...heroFeatured, ...shuffledRest];
 
 // ── Simulation rollout videos ────────────────────────────────────────
 const simVideos = [
