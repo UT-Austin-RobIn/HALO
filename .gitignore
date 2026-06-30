@@ -26,6 +26,10 @@ Thumbs.db
 *.sln
 *.sw?
 
+# Source/working video files (not for the repo)
+Popcorn_V4.mov
+Popcorn_V4_compressed.mp4
+
 # Logs
 npm-debug.log*
 yarn-debug.log*
